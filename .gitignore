@@ -1,0 +1,36 @@
+# Python virtual environment
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+
+# Streamlit
+.streamlit/
+
+# Private keys dan material rahasia
+*.pem
+*.key
+*.p12
+*.pfx
+*.env
+
+# Hasil signing dan QR demo
+*.signature.json
+*.qrcode.png
+
+# File/dokumen pengujian
+demo_berhasil/
+demo_qr/
+demo_valid/
+data/
+results/
+
+# Skrip debugging sementara
+check_keys.py
+tamper_file.py
+test_qr_read.py
+
+# Editor/OS
+.vscode/
+.DS_Store
+Thumbs.db
