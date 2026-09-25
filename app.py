@@ -234,7 +234,7 @@ with tab_sign:
             )
 
         st.subheader("QR Code Verifikasi")
-        st.image(qr_bytes, width=260)
+        st.image(qr_bytes, width=420)
 
         download_1, download_2 = st.columns(2)
 
@@ -288,7 +288,7 @@ with tab_verify:
     )
 
     qr_file = st.file_uploader(
-        "Pilih QR Code untuk validasi (opsional)",
+        "Upload file QR Code hasil download (PNG/JPG, jangan screenshot atau crop)",
         type=["png", "jpg", "jpeg"],
         key="verify_qr_code"
     )
@@ -336,12 +336,12 @@ with tab_verify:
                                 f"QR VALID — {qr_result['reason']}"
                             )
                         else:
-                            st.error(
-                                f"QR INVALID — {qr_result['reason']}"
+                            st.warning(
+                                f"QR TIDAK COCOK — {qr_result['reason']}"
                             )
 
                     except ValueError as error:
-                        st.error(f"QR INVALID — {error}")
+                        st.warning(f"QR TIDAK TERBACA — {error}")
 
                 st.subheader("Informasi Verifikasi")
 

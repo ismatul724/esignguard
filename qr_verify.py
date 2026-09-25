@@ -9,13 +9,51 @@ def decode_qr_code(qr_image_bytes: bytes) -> dict:
     Membaca gambar QR Code dan mengembalikan isi JSON di dalamnya.
     """
     image_array = np.frombuffer(qr_image_bytes, dtype=np.uint8)
-    image = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
+    image = cv2.imdecode(image_array, cv2.IMREAD_GRAYSCALE)
 
     if image is None:
         raise ValueError("File gambar QR tidak dapat dibaca.")
 
     detector = cv2.QRCodeDetector()
-    payload_text, _, _ = detector.detectAndDecode(image)
+    candidates = [image]
+
+    enlarged_image = cv2.resize(
+        image,
+        None,
+        fx=2,
+        fy=2,
+        interpolation=cv2.INTER_NEAREST,
+    )
+    candidates.append(enlarged_image)
+    candidates.append(
+        cv2.threshold(image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)[1]
+    )
+
+    height, width = image.shape
+    margin = max(1, min(height, width) // 20)
+    if height > margin * 2 and width > margin * 2:
+        cropped_image = image[margin:-margin, margin:-margin]
+        candidates.extend([
+            cropped_image,
+            cv2.resize(
+                cropped_image,
+                None,
+                fx=2,
+                fy=2,
+                interpolation=cv2.INTER_NEAREST,
+            ),
+        ])
+
+    candidates.extend([
+        cv2.rotate(image, cv2.ROTATE_90_CLOCKWISE),
+        cv2.rotate(image, cv2.ROTATE_90_COUNTERCLOCKWISE),
+    ])
+
+    payload_text = ""
+    for candidate in candidates:
+        payload_text, _, _ = detector.detectAndDecode(candidate)
+        if payload_text:
+            break
 
     if not payload_text:
         raise ValueError(
