@@ -25,7 +25,19 @@ Aplikasi web tanda tangan digital dokumen berbasis Python dan Streamlit.
 
 ## Instalasi
 
+### Linux atau macOS
+
 ```bash
+git clone <URL_REPOSITORI>
+cd esignguard
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+```
+
+### Windows
+
+```powershell
 git clone <URL_REPOSITORI>
 cd esignguard
 py -m venv .venv
@@ -44,6 +56,110 @@ Buka aplikasi di:
 ```text
 http://localhost:8501
 ```
+
+## Alur Penggunaan Lengkap
+
+### 1. Membuat pasangan key
+
+1. Buka tab **Generate Key**.
+2. Masukkan password minimal 8 karakter.
+3. Masukkan password yang sama pada kolom konfirmasi.
+4. Klik **Generate Key Pair**.
+5. Download dua file yang dihasilkan:
+   - `private_key_encrypted.pem`
+   - `public_key.pem`
+
+Private key digunakan untuk membuat tanda tangan. Public key digunakan untuk
+memeriksa tanda tangan. Simpan private key dan password secara aman. Jangan
+mengunggah private key atau password ke GitHub.
+
+### 2. Menandatangani dokumen
+
+1. Buka tab **Sign Document**.
+2. Upload dokumen yang akan ditandatangani.
+3. Upload `private_key_encrypted.pem` dari pasangan key yang dibuat.
+4. Masukkan password private key.
+5. Isi nama penandatangan.
+6. Isi jabatan atau peran penandatangan.
+7. Isi institusi.
+8. Klik **Tandatangani Dokumen**.
+
+Setelah proses berhasil, aplikasi menghitung hash SHA-256 dokumen dan membuat
+signature Ed25519. Aplikasi menampilkan hash dokumen serta menghasilkan dua
+file tambahan:
+
+- `nama_dokumen.signature.json`, berisi hash, signature, algoritma, dan metadata.
+- `nama_dokumen.qrcode.png`, berisi hash dan metadata verifikasi.
+
+Simpan dokumen asli, signature JSON, QR Code, dan `public_key.pem` sebagai satu
+paket. Keempat file tersebut harus berasal dari proses signing yang sama.
+
+### 3. Memverifikasi dokumen asli
+
+1. Buka tab **Verify Document**.
+2. Upload dokumen asli yang belum diubah.
+3. Upload file signature JSON yang sesuai.
+4. Upload `public_key.pem` pasangannya.
+5. Upload QR Code yang sesuai jika ingin memeriksa QR.
+6. Klik **Verifikasi Dokumen**.
+
+Jika semua file cocok, hasilnya adalah:
+
+```text
+VALID - Dokumen autentik dan tidak berubah.
+QR VALID - QR Code cocok dengan dokumen dan signature JSON.
+```
+
+### 4. Menguji dokumen yang diubah
+
+Untuk demonstrasi tampering:
+
+1. Buat salinan dokumen asli.
+2. Ubah satu kata atau satu byte pada salinan tersebut.
+3. Upload salinan yang sudah diubah pada tab **Verify Document**.
+4. Gunakan signature JSON dan public key dari dokumen asli.
+5. Klik **Verifikasi Dokumen**.
+
+Hasil yang diharapkan adalah `INVALID` karena hash dokumen baru berbeda dari
+hash yang tersimpan di signature JSON.
+
+Jangan menyimpan perubahan ke file asli yang ingin dipakai sebagai pembanding.
+
+### 5. Menguji public key yang salah
+
+1. Generate pasangan key baru pada tab **Generate Key**.
+2. Jangan gunakan private key baru untuk menandatangani ulang dokumen lama.
+3. Pada tab **Verify Document**, upload dokumen lama dan signature JSON lama.
+4. Gunakan `public_key.pem` dari pasangan key baru.
+5. Klik **Verifikasi Dokumen**.
+
+Hasil yang diharapkan adalah `INVALID` karena signature dibuat menggunakan
+private key yang berbeda dari public key yang digunakan untuk verifikasi.
+
+### 6. Menguji QR Code palsu atau QR dari dokumen lain
+
+1. Gunakan dokumen, signature JSON, dan public key yang benar.
+2. Upload QR Code yang berasal dari dokumen lain atau QR yang datanya telah
+   diubah.
+3. Klik **Verifikasi Dokumen**.
+
+Hasil yang diharapkan adalah `QR INVALID` karena hash atau metadata pada QR
+tidak cocok dengan dokumen dan signature JSON yang sedang diverifikasi.
+
+### 7. Memahami hasil verifikasi
+
+Verifikasi dokumen dan verifikasi QR ditampilkan sebagai hasil terpisah:
+
+- `VALID`: hash dokumen cocok dan signature Ed25519 dapat diverifikasi dengan
+  public key yang diberikan.
+- `INVALID`: dokumen berubah, signature rusak, atau public key tidak cocok.
+- `QR VALID`: isi QR cocok dengan dokumen dan signature JSON.
+- `QR INVALID`: QR tidak terbaca, berasal dari aplikasi lain, atau isinya tidak
+  cocok dengan dokumen/signature JSON.
+
+Jika hasilnya tidak sesuai, pastikan semua file diambil dari satu proses
+signing. Membuka lalu menyimpan ulang PDF juga dapat mengubah byte file dan
+membuat hash berbeda.
 
 ## Keamanan
 
