@@ -53,6 +53,6 @@ http://localhost:8501
 
 ## Anggota Kelompok
 
-- Ismatul Ilmi — NPM
-- Nabila Rohmatul Aulia — NPM
-- Refa Adinda — NPM
+- Ismatul Ilmi — 247006111137
+- Nabila Rohmatul Aulia — 247006111143
+- Refa Adinda — 247006111197
