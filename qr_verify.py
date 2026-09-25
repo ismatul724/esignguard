@@ -6,7 +6,7 @@ import numpy as np
 
 def decode_qr_code(qr_image_bytes: bytes) -> dict:
     """
-    Membaca gambar QR Code dan mengembalikan isi JSON-nya.
+    Membaca gambar QR Code dan mengembalikan isi JSON di dalamnya.
     """
     image_array = np.frombuffer(qr_image_bytes, dtype=np.uint8)
     image = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
@@ -36,22 +36,22 @@ def validate_qr_data(
     signature_data: dict,
 ) -> dict:
     """
-    Membandingkan data QR dengan hash dokumen dan signature JSON.
+    Membandingkan data QR dengan dokumen saat ini dan signature JSON.
     """
     signed_hash = signature_data.get("document_sha256")
+    metadata = signature_data.get("metadata", {})
 
     if qr_data.get("app") != "eSignGuard":
         return {
             "valid": False,
-            "reason": "QR Code bukan QR Code milik aplikasi eSignGuard."
+            "reason": "QR Code bukan milik aplikasi eSignGuard."
         }
 
     if qr_data.get("document_sha256") != current_hash:
         return {
             "valid": False,
             "reason": (
-                "Hash dalam QR Code tidak cocok dengan dokumen yang "
-                "diunggah."
+                "Hash di QR Code tidak cocok dengan dokumen yang diunggah."
             )
         }
 
@@ -59,17 +59,15 @@ def validate_qr_data(
         return {
             "valid": False,
             "reason": (
-                "Hash dalam QR Code tidak cocok dengan signature JSON."
+                "Hash di QR Code tidak cocok dengan signature JSON."
             )
         }
-
-    metadata = signature_data.get("metadata", {})
 
     if qr_data.get("signer_name") != metadata.get("signer_name"):
         return {
             "valid": False,
             "reason": (
-                "Nama penandatangan pada QR Code tidak cocok dengan "
+                "Nama penandatangan di QR Code tidak cocok dengan "
                 "signature JSON."
             )
         }
@@ -78,7 +76,7 @@ def validate_qr_data(
         return {
             "valid": False,
             "reason": (
-                "Institusi pada QR Code tidak cocok dengan signature JSON."
+                "Institusi di QR Code tidak cocok dengan signature JSON."
             )
         }
 

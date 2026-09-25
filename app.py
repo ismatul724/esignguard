@@ -1,3 +1,4 @@
+import json
 import streamlit as st
 
 from crypto_utils import (
@@ -7,6 +8,7 @@ from crypto_utils import (
     verify_document_signature,
 )
 from qr_utils import create_qr_code
+from qr_verify import decode_qr_code, validate_qr_data
 
 
 st.set_page_config(
@@ -23,6 +25,21 @@ if "generated_private_pem" not in st.session_state:
 
 if "generated_public_pem" not in st.session_state:
     st.session_state.generated_public_pem = None
+
+if "signed_signature_data" not in st.session_state:
+    st.session_state.signed_signature_data = None
+
+if "signed_document_name" not in st.session_state:
+    st.session_state.signed_document_name = None
+
+if "signed_document_hash" not in st.session_state:
+    st.session_state.signed_document_hash = None
+
+if "signed_json_bytes" not in st.session_state:
+    st.session_state.signed_json_bytes = None
+
+if "signed_qr_bytes" not in st.session_state:
+    st.session_state.signed_qr_bytes = None
 
 
 tab_key, tab_sign, tab_verify, tab_info = st.tabs([
@@ -170,66 +187,86 @@ with tab_sign:
                     institution=institution,
                 )
 
-                json_bytes = signature_json_bytes(signature_data)
-                qr_bytes = create_qr_code(signature_data)
+                st.session_state.signed_document_name = document_file.name
+                st.session_state.signed_document_hash = document_hash
+                st.session_state.signed_signature_data = signature_data
+                st.session_state.signed_json_bytes = signature_json_bytes(
+                    signature_data
+                )
+                st.session_state.signed_qr_bytes = create_qr_code(
+                    signature_data
+                )
 
                 st.success("Dokumen berhasil ditandatangani.")
-
-                st.caption("SHA-256 dokumen")
-                st.code(document_hash, language=None)
-
-                metric_1, metric_2 = st.columns(2)
-
-                with metric_1:
-                    st.metric(
-                        "Algoritma",
-                        signature_data["algorithm"]
-                    )
-
-                with metric_2:
-                    st.metric(
-                        "Ukuran signature",
-                        f"{signature_data['signature_size_bytes']} byte"
-                    )
-
-                st.subheader("QR Code Verifikasi")
-                st.image(qr_bytes, width=260)
-
-                download_1, download_2 = st.columns(2)
-
-                with download_1:
-                    st.download_button(
-                        label="⬇️ Download Signature JSON",
-                        data=json_bytes,
-                        file_name=f"{document_file.name}.signature.json",
-                        mime="application/json"
-                    )
-
-                with download_2:
-                    st.download_button(
-                        label="⬇️ Download QR Code",
-                        data=qr_bytes,
-                        file_name=f"{document_file.name}.qrcode.png",
-                        mime="image/png"
-                    )
-
-                st.info(
-                    "Simpan dokumen asli, signature JSON, public key, "
-                    "dan QR Code. Keempatnya digunakan pada tahap verifikasi."
-                )
 
             except ValueError as error:
                 st.error(str(error))
             except Exception as error:
                 st.error(f"Terjadi kesalahan saat signing: {error}")
 
+    if st.session_state.signed_signature_data is not None:
+        signature_data = st.session_state.signed_signature_data
+        document_hash = st.session_state.signed_document_hash
+        json_bytes = st.session_state.signed_json_bytes
+        qr_bytes = st.session_state.signed_qr_bytes
+        document_name = st.session_state.signed_document_name
+
+        st.success(
+            "Hasil signing siap diunduh. Kamu dapat mengunduh JSON "
+            "dan QR Code satu per satu."
+        )
+
+        st.caption("SHA-256 dokumen")
+        st.code(document_hash, language=None)
+
+        metric_1, metric_2 = st.columns(2)
+
+        with metric_1:
+            st.metric(
+                "Algoritma",
+                signature_data["algorithm"]
+            )
+
+        with metric_2:
+            st.metric(
+                "Ukuran signature",
+                f"{signature_data['signature_size_bytes']} byte"
+            )
+
+        st.subheader("QR Code Verifikasi")
+        st.image(qr_bytes, width=260)
+
+        download_1, download_2 = st.columns(2)
+
+        with download_1:
+            st.download_button(
+                label="⬇️ Download Signature JSON",
+                data=json_bytes,
+                file_name=f"{document_name}.signature.json",
+                mime="application/json",
+                key="download_signature_json"
+            )
+
+        with download_2:
+            st.download_button(
+                label="⬇️ Download QR Code",
+                data=qr_bytes,
+                file_name=f"{document_name}.qrcode.png",
+                mime="image/png",
+                key="download_qr_code"
+            )
+
+        st.info(
+            "Simpan dokumen asli, signature JSON, public key, dan QR Code. "
+            "Keempatnya digunakan untuk verifikasi."
+        )
 
 with tab_verify:
     st.subheader("Verifikasi Dokumen")
 
     st.write(
-        "Unggah dokumen asli, signature JSON, dan public key untuk "
-        "memeriksa keaslian serta integritas dokumen."
+        "Unggah dokumen asli, signature JSON, public key, dan QR Code "
+        "untuk memeriksa keaslian serta integritas dokumen."
     )
 
     verify_document_file = st.file_uploader(
@@ -250,6 +287,12 @@ with tab_verify:
         key="verify_public_key"
     )
 
+    qr_file = st.file_uploader(
+        "Pilih QR Code untuk validasi (opsional)",
+        type=["png", "jpg", "jpeg"],
+        key="verify_qr_code"
+    )
+
     if st.button("Verifikasi Dokumen", type="primary"):
         if verify_document_file is None:
             st.warning("Pilih dokumen yang akan diverifikasi.")
@@ -259,16 +302,46 @@ with tab_verify:
             st.warning("Pilih public key.")
         else:
             try:
+                document_bytes = verify_document_file.getvalue()
+                signature_bytes = signature_file.getvalue()
+                public_key_bytes = public_key_file.getvalue()
+
                 result = verify_document_signature(
-                    document_bytes=verify_document_file.getvalue(),
-                    signature_json_bytes=signature_file.getvalue(),
-                    public_key_pem=public_key_file.getvalue(),
+                    document_bytes=document_bytes,
+                    signature_json_bytes=signature_bytes,
+                    public_key_pem=public_key_bytes,
                 )
 
                 if result["valid"]:
                     st.success("VALID — Dokumen autentik dan tidak berubah.")
                 else:
                     st.error(f"INVALID — {result['reason']}")
+
+                if qr_file is not None:
+                    try:
+                        signature_data = json.loads(
+                            signature_bytes.decode("utf-8")
+                        )
+
+                        qr_data = decode_qr_code(qr_file.getvalue())
+
+                        qr_result = validate_qr_data(
+                            qr_data=qr_data,
+                            current_hash=result["current_hash"],
+                            signature_data=signature_data,
+                        )
+
+                        if qr_result["valid"]:
+                            st.success(
+                                f"QR VALID — {qr_result['reason']}"
+                            )
+                        else:
+                            st.error(
+                                f"QR INVALID — {qr_result['reason']}"
+                            )
+
+                    except ValueError as error:
+                        st.error(f"QR INVALID — {error}")
 
                 st.subheader("Informasi Verifikasi")
 
@@ -305,7 +378,6 @@ with tab_verify:
                 st.error(str(error))
             except Exception as error:
                 st.error(f"Terjadi kesalahan saat verifikasi: {error}")
-
 
 with tab_info:
     st.subheader("Tentang eSignGuard")
