@@ -6,6 +6,11 @@
 
 Aplikasi web tanda tangan digital dokumen berbasis Python dan Streamlit.
 
+## 🚀 Live Demo
+
+Aplikasi ini sudah di-deploy dan bisa diakses di:
+
+👉 [https://esignguard.streamlit.app/](https://esignguard.streamlit.app/)
 
 ## Fitur
 
@@ -29,18 +34,18 @@ Aplikasi web tanda tangan digital dokumen berbasis Python dan Streamlit.
 - **qrcode** - Generator QR Code
 - **Pillow** - Pemrosesan gambar
 
-
 ## Struktur Folder
-esignguard/
-├── app.py # Aplikasi Streamlit utama
-├── crypto_utils.py # Fungsi kriptografi (generate key, sign, verify)
-├── benchmark.py # Script benchmark performa
-├── tests/
-│ └── test_crypto.py # Unit test
-├── requirements.txt # Dependensi Python
-├── .gitignore # File yang di-ignore Git
-└── README.md # Dokumentasi ini
 
+- app.py - Aplikasi Streamlit utama
+- crypto_utils.py - Fungsi kriptografi (generate key, sign, verify)
+- qr_utils.py - Generator QR Code
+- qr_verify.py - Verifikasi QR Code
+- benchmark.py - Script benchmark performa
+- tests/test_crypto.py - Unit test
+- data/benchmark_results.json - Hasil benchmark
+- requirements.txt - Dependensi Python
+- .gitignore - File yang di-ignore Git
+- README.md - Dokumentasi ini
 
 
 ## Instalasi
