@@ -1,36 +1,96 @@
-# Python virtual environment
+# ============================================
+# PYTHON
+# ============================================
+# Virtual environment
 .venv/
 venv/
+env/
+.venv.zip
 __pycache__/
 *.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
 
-# Streamlit
+# Large files - jangan pernah di-commit
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# ============================================
+# STREAMLIT
+# ============================================
 .streamlit/
 
-# Private keys dan material rahasia
+# ============================================
+# PRIVATE KEYS DAN MATERIAL RAHASIA
+# ============================================
 *.pem
 *.key
 *.p12
 *.pfx
 *.env
+*.secret
+*.secrets
 
-# Hasil signing dan QR demo
+# ============================================
+# HASIL SIGNING DAN QR DEMO
+# ============================================
 *.signature.json
 *.qrcode.png
 
-# File/dokumen pengujian
+# ============================================
+# FILE/DOKUMEN PENGUJIAN
+# ============================================
 demo_berhasil/
 demo_qr/
 demo_valid/
-data/
 results/
+data/*.pdf
+data/*.png
+data/*.xlsx
+data/*.docx
+data/*.pptx
 
-# Skrip debugging sementara
-check_keys.py
-tamper_file.py
-test_qr_read.py
-
-# Editor/OS
+# ============================================
+# EDITOR/OS
+# ============================================
 .vscode/
+.idea/
+*.swp
+*.swo
+*~
 .DS_Store
 Thumbs.db
+
+# ============================================
+# LAPORAN DAN VIDEO
+# ============================================
+laporan/
+video_demo/
+*.mp4
+*.avi
+*.mov
+
+# ============================================
+# BACKUP
+# ============================================
+*.bak
+*.backup
+*_backup/
