@@ -1,0 +1,16 @@
+{
+  "iterations": 30,
+  "key_generation_time_sec": 0.004882800000018506,
+  "signing": {
+    "avg_sec": 0.000605876666649389,
+    "min_sec": 0.0005475000000387809,
+    "max_sec": 0.0010673000000451793
+  },
+  "verification": {
+    "avg_sec": 0.00014392333335232858,
+    "min_sec": 0.0001234000000067681,
+    "max_sec": 0.00025349999998525163
+  },
+  "signature_size_base64_chars": 88,
+  "public_key_size_bytes": 113
+}

@@ -1,5 +1,57 @@
 from cryptography.hazmat.primitives import serialization
 from cryptography.hazmat.primitives.asymmetric.ed25519 import Ed25519PrivateKey
+import qrcode
+import qrcode.constants
+import base64
+import hashlib
+import json
+from datetime import datetime, timezone
+from cryptography.hazmat.primitives.serialization import load_pem_private_key
+from cryptography.exceptions import InvalidSignature
+from cryptography.hazmat.primitives.serialization import load_pem_public_key
+
+
+def validate_password(password: str) -> tuple[bool, str]:
+    """
+    Validasi kekuatan password.
+    
+    Args:
+        password: Password yang akan divalidasi
+        
+    Returns:
+        Tuple (is_valid, error_message)
+    """
+    if len(password) < 8:
+        return False, "Password minimal 8 karakter"
+    
+    if not any(c.isalpha() for c in password):
+        return False, "Password harus mengandung huruf"
+    
+    if not any(c.isdigit() for c in password):
+        return False, "Password harus mengandung angka"
+    
+    return True, "Password valid"
+
+
+def generate_qr_code(data: str, output_path: str) -> None:
+    """
+    Generate QR code dari data string.
+    
+    Args:
+        data: Data yang akan di-encode ke QR code
+        output_path: Path untuk menyimpan file QR code
+    """
+    qr = qrcode.QRCode(
+        version=1,
+        error_correction=qrcode.constants.ERROR_CORRECT_H,
+        box_size=10,
+        border=4,
+    )
+    qr.add_data(data)
+    qr.make(fit=True)
+
+    img = qr.make_image(fill_color="black", back_color="white")
+    img.save(output_path)
 
 
 def generate_key_pair(password: str) -> tuple[bytes, bytes]:
@@ -9,10 +61,9 @@ def generate_key_pair(password: str) -> tuple[bytes, bytes]:
     Private key disimpan sebagai PEM PKCS8 yang dienkripsi password.
     Public key disimpan sebagai PEM SubjectPublicKeyInfo.
     """
-    if len(password) < 8:
-        raise ValueError(
-            "Password private key minimal harus terdiri dari 8 karakter."
-        )
+    is_valid, error_msg = validate_password(password)
+    if not is_valid:
+        raise ValueError(error_msg)
 
     private_key = Ed25519PrivateKey.generate()
     public_key = private_key.public_key()
@@ -31,13 +82,6 @@ def generate_key_pair(password: str) -> tuple[bytes, bytes]:
     )
 
     return encrypted_private_pem, public_pem
-
-import base64
-import hashlib
-import json
-from datetime import datetime, timezone
-
-from cryptography.hazmat.primitives.serialization import load_pem_private_key
 
 
 def calculate_sha256(file_bytes: bytes) -> str:
@@ -71,6 +115,31 @@ def load_private_key(
     return private_key
 
 
+def sanitize_input(text: str, max_length: int = 100) -> str:
+    """
+    Sanitasi input user untuk mencegah XSS.
+    
+    Args:
+        text: Input text yang akan disanitasi
+        max_length: Panjang maksimal input
+        
+    Returns:
+        Text yang sudah disanitasi
+    """
+    if not text:
+        return ""
+    
+    # Batasi panjang
+    text = text[:max_length]
+    
+    # Hapus karakter HTML berbahaya
+    dangerous_chars = ['<', '>', '"', "'", '&', '\\', '/']
+    for char in dangerous_chars:
+        text = text.replace(char, '')
+    
+    return text.strip()
+
+
 def create_signature_data(
     document_bytes: bytes,
     document_name: str,
@@ -91,6 +160,11 @@ def create_signature_data(
     if not institution.strip():
         raise ValueError("Institusi wajib diisi.")
 
+    # Sanitasi input
+    signer_name = sanitize_input(signer_name, max_length=100)
+    signer_role = sanitize_input(signer_role, max_length=100)
+    institution = sanitize_input(institution, max_length=150)
+
     private_key = load_private_key(private_key_pem, password)
 
     document_hash = calculate_sha256(document_bytes)
@@ -110,9 +184,9 @@ def create_signature_data(
         "signature_base64": signature_base64,
         "signature_size_bytes": len(signature_bytes),
         "metadata": {
-            "signer_name": signer_name.strip(),
-            "signer_role": signer_role.strip(),
-            "institution": institution.strip(),
+            "signer_name": signer_name,
+            "signer_role": signer_role,
+            "institution": institution,
             "signed_at_utc": datetime.now(timezone.utc).isoformat()
         }
     }
@@ -129,9 +203,6 @@ def signature_json_bytes(signature_data: dict) -> bytes:
         indent=2,
         ensure_ascii=False
     ).encode("utf-8")
-
-from cryptography.exceptions import InvalidSignature
-from cryptography.hazmat.primitives.serialization import load_pem_public_key
 
 
 def load_public_key(public_key_pem: bytes):
