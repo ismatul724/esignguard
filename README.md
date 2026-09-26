@@ -1,8 +1,13 @@
 # eSignGuard
 
+![Python](https://img.shields.io/badge/Python-3.8+-blue)
+![Streamlit](https://img.shields.io/badge/Streamlit-1.30+-red)
+![License](https://img.shields.io/badge/License-MIT-green)
+
 Aplikasi web tanda tangan digital dokumen berbasis Python dan Streamlit.
 
-## Fitur saat ini
+
+## Fitur
 
 - Generate pasangan key Ed25519
 - Private key disimpan dalam format PEM terenkripsi password
@@ -13,15 +18,30 @@ Aplikasi web tanda tangan digital dokumen berbasis Python dan Streamlit.
 - Deteksi perubahan/tampering dokumen
 - Deteksi public key yang salah
 
+
 ## Teknologi
 
-- Python
-- Streamlit
-- cryptography
-- Ed25519
-- SHA-256
-- qrcode
-- Pillow
+- **Python 3.8+**
+- **Streamlit** - Framework aplikasi web
+- **cryptography** - Library kriptografi
+- **Ed25519** - Algoritma tanda tangan digital
+- **SHA-256** - Fungsi hash kriptografis
+- **qrcode** - Generator QR Code
+- **Pillow** - Pemrosesan gambar
+
+
+## Struktur Folder
+esignguard/
+├── app.py # Aplikasi Streamlit utama
+├── crypto_utils.py # Fungsi kriptografi (generate key, sign, verify)
+├── benchmark.py # Script benchmark performa
+├── tests/
+│ └── test_crypto.py # Unit test
+├── requirements.txt # Dependensi Python
+├── .gitignore # File yang di-ignore Git
+└── README.md # Dokumentasi ini
+
+
 
 ## Instalasi
 
@@ -45,7 +65,8 @@ py -m venv .venv
 python -m pip install -r requirements.txt
 ```
 
-## Menjalankan aplikasi
+
+## Menjalankan Aplikasi
 
 ```bash
 python -m streamlit run app.py
@@ -57,9 +78,10 @@ Buka aplikasi di:
 http://localhost:8501
 ```
 
+
 ## Alur Penggunaan Lengkap
 
-### 1. Membuat pasangan key
+### 1. Membuat Pasangan Key
 
 1. Buka tab **Generate Key**.
 2. Masukkan password minimal 8 karakter.
@@ -69,11 +91,10 @@ http://localhost:8501
    - `private_key_encrypted.pem`
    - `public_key.pem`
 
-Private key digunakan untuk membuat tanda tangan. Public key digunakan untuk
-memeriksa tanda tangan. Simpan private key dan password secara aman. Jangan
-mengunggah private key atau password ke GitHub.
+Private key digunakan untuk membuat tanda tangan. Public key digunakan untuk memeriksa tanda tangan. Simpan private key dan password secara aman. **Jangan mengunggah private key atau password ke GitHub.**
 
-### 2. Menandatangani dokumen
+
+### 2. Menandatangani Dokumen
 
 1. Buka tab **Sign Document**.
 2. Upload dokumen yang akan ditandatangani.
@@ -84,17 +105,15 @@ mengunggah private key atau password ke GitHub.
 7. Isi institusi.
 8. Klik **Tandatangani Dokumen**.
 
-Setelah proses berhasil, aplikasi menghitung hash SHA-256 dokumen dan membuat
-signature Ed25519. Aplikasi menampilkan hash dokumen serta menghasilkan dua
-file tambahan:
+Setelah proses berhasil, aplikasi menghitung hash SHA-256 dokumen dan membuat signature Ed25519. Aplikasi menampilkan hash dokumen serta menghasilkan dua file tambahan:
 
 - `nama_dokumen.signature.json`, berisi hash, signature, algoritma, dan metadata.
 - `nama_dokumen.qrcode.png`, berisi hash dan metadata verifikasi.
 
-Simpan dokumen asli, signature JSON, QR Code, dan `public_key.pem` sebagai satu
-paket. Keempat file tersebut harus berasal dari proses signing yang sama.
+Simpan dokumen asli, signature JSON, QR Code, dan `public_key.pem` sebagai satu paket. Keempat file tersebut harus berasal dari proses signing yang sama.
 
-### 3. Memverifikasi dokumen asli
+
+### 3. Memverifikasi Dokumen Asli
 
 1. Buka tab **Verify Document**.
 2. Upload dokumen asli yang belum diubah.
@@ -110,7 +129,8 @@ VALID - Dokumen autentik dan tidak berubah.
 QR VALID - QR Code cocok dengan dokumen dan signature JSON.
 ```
 
-### 4. Menguji dokumen yang diubah
+
+### 4. Menguji Dokumen yang Diubah (Tampering)
 
 Untuk demonstrasi tampering:
 
@@ -120,12 +140,12 @@ Untuk demonstrasi tampering:
 4. Gunakan signature JSON dan public key dari dokumen asli.
 5. Klik **Verifikasi Dokumen**.
 
-Hasil yang diharapkan adalah `INVALID` karena hash dokumen baru berbeda dari
-hash yang tersimpan di signature JSON.
+Hasil yang diharapkan adalah `INVALID` karena hash dokumen baru berbeda dari hash yang tersimpan di signature JSON.
 
-Jangan menyimpan perubahan ke file asli yang ingin dipakai sebagai pembanding.
+**Jangan menyimpan perubahan ke file asli yang ingin dipakai sebagai pembanding.**
 
-### 5. Menguji public key yang salah
+
+### 5. Menguji Public Key yang Salah
 
 1. Generate pasangan key baru pada tab **Generate Key**.
 2. Jangan gunakan private key baru untuk menandatangani ulang dokumen lama.
@@ -133,42 +153,61 @@ Jangan menyimpan perubahan ke file asli yang ingin dipakai sebagai pembanding.
 4. Gunakan `public_key.pem` dari pasangan key baru.
 5. Klik **Verifikasi Dokumen**.
 
-Hasil yang diharapkan adalah `INVALID` karena signature dibuat menggunakan
-private key yang berbeda dari public key yang digunakan untuk verifikasi.
+Hasil yang diharapkan adalah `INVALID` karena signature dibuat menggunakan private key yang berbeda dari public key yang digunakan untuk verifikasi.
 
-### 6. Menguji QR Code palsu atau QR dari dokumen lain
+
+### 6. Menguji QR Code Palsu
 
 1. Gunakan dokumen, signature JSON, dan public key yang benar.
-2. Upload QR Code yang berasal dari dokumen lain atau QR yang datanya telah
-   diubah.
+2. Upload QR Code yang berasal dari dokumen lain atau QR yang datanya telah diubah.
 3. Klik **Verifikasi Dokumen**.
 
-Hasil yang diharapkan adalah `QR INVALID` karena hash atau metadata pada QR
-tidak cocok dengan dokumen dan signature JSON yang sedang diverifikasi.
+Hasil yang diharapkan adalah `QR INVALID` karena hash atau metadata pada QR tidak cocok dengan dokumen dan signature JSON yang sedang diverifikasi.
 
-### 7. Memahami hasil verifikasi
+
+### 7. Memahami Hasil Verifikasi
 
 Verifikasi dokumen dan verifikasi QR ditampilkan sebagai hasil terpisah:
 
-- `VALID`: hash dokumen cocok dan signature Ed25519 dapat diverifikasi dengan
-  public key yang diberikan.
-- `INVALID`: dokumen berubah, signature rusak, atau public key tidak cocok.
-- `QR VALID`: isi QR cocok dengan dokumen dan signature JSON.
-- `QR INVALID`: QR tidak terbaca, berasal dari aplikasi lain, atau isinya tidak
-  cocok dengan dokumen/signature JSON.
+- **VALID**: hash dokumen cocok dan signature Ed25519 dapat diverifikasi dengan public key yang diberikan.
+- **INVALID**: dokumen berubah, signature rusak, atau public key tidak cocok.
+- **QR VALID**: isi QR cocok dengan dokumen dan signature JSON.
+- **QR INVALID**: QR tidak terbaca, berasal dari aplikasi lain, atau isinya tidak cocok dengan dokumen/signature JSON.
 
-Jika hasilnya tidak sesuai, pastikan semua file diambil dari satu proses
-signing. Membuka lalu menyimpan ulang PDF juga dapat mengubah byte file dan
-membuat hash berbeda.
+Jika hasilnya tidak sesuai, pastikan semua file diambil dari satu proses signing. Membuka lalu menyimpan ulang PDF juga dapat mengubah byte file dan membuat hash berbeda.
+
 
 ## Keamanan
 
-- Jangan unggah private key, password, atau file `.pem` ke GitHub.
-- Jangan unggah dokumen sensitif ke repository.
+- ⚠️ **Jangan unggah private key, password, atau file `.pem` ke GitHub.**
+- ⚠️ **Jangan unggah dokumen sensitif ke repository.**
 - Private key dibuat dalam format terenkripsi menggunakan password.
+
+
+## Benchmark & Testing
+
+Aplikasi ini telah diuji dengan:
+
+- **Unit test**: 5 test cases (key generation, signing, verification, tampering detection)
+- **Benchmark**: 30 iterasi signing dan verification untuk mengukur performa
+
+Hasil benchmark dan test dapat direproduksi dengan menjalankan:
+
+```bash
+python benchmark.py
+python -m pytest tests/
+```
+
 
 ## Anggota Kelompok
 
-- Ismatul Ilmi — 247006111137
-- Nabila Rohmatul Aulia — 247006111143
-- Refa Adinda — 247006111197
+| Nama | NIM |
+|------|-----|
+| Ismatul Ilmi | 247006111137 |
+| Nabila Rohmatul Aulia | 247006111143 |
+| Refa Adinda | 247006111197 |
+
+
+## Lisensi
+
+Proyek ini dibuat untuk tujuan edukasi.
