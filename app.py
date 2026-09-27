@@ -264,6 +264,16 @@ hr {
     margin: 1.5rem 0;
 }
 
+/* Hide the little link/anchor icon Streamlit shows on hover next to headings */
+[data-testid="stHeaderActionElements"] {
+    display: none !important;
+}
+/* Also covers anchor icons Streamlit injects into raw <h1>-<h6> tags
+   inside custom HTML (e.g. the hero banner title) */
+h1 a, h2 a, h3 a, h4 a, h5 a, h6 a {
+    display: none !important;
+}
+
 /* Feature cards on Tentang tab */
 .feature-card {
     padding: 1.5rem;
@@ -848,8 +858,8 @@ with tab_info:
     ---
     """)
 
-    st.subheader("👥 Pengembang")
-    st.caption("Tim pengembang eSignGuard — Universitas Siliwangi")
+    st.subheader("👥 Tim Pengembang")
+    st.caption("Kelompok pengembang eSignGuard — Universitas Siliwangi")
 
     import base64
     import os
@@ -871,28 +881,28 @@ with tab_info:
             "initials": "II",
             "image": "assets/ismatul.jpg",
             "links": [
-                ("Instagram", "https://instagram.com/ilmysma"),
-                ("GitHub", "https://github.com/Ismatul724"),
+                ("Instagram", "https://instagram.com/ismatulilmi"),
+                ("GitHub", "https://github.com/ismatulilmi"),
             ],
         },
         {
             "name": "Nabila Rohmatul Aulia",
             "role": "UI/UX Designer",
             "initials": "NR",
-            "image": "assets/nabila.jpeg",
+            "image": "assets/nabila.jpg",
             "links": [
-                ("Instagram", "https://instagram.com/nabilaara_"),
-                ("GitHub", "https://github.com/NABILAARA"),
+                ("Instagram", "https://instagram.com/nabilarohmatul"),
+                ("GitHub", "https://github.com/nabilarohmatul"),
             ],
         },
         {
-            "name": "Refa Adinda Putri",
+            "name": "Refa Adinda",
             "role": "QA & Documentation",
             "initials": "RA",
-            "image": "assets/refa.jpeg",
+            "image": "assets/refa.jpg",
             "links": [
                 ("Instagram", "https://instagram.com/refaadinda"),
-                ("GitHub", "https://github.com/247006111197-web"),
+                ("GitHub", "https://github.com/refaadinda"),
             ],
         },
     ]
