@@ -286,6 +286,91 @@ hr {
     background-color: var(--bg-page) !important;
     border-color: var(--border) !important;
 }
+
+/* ---- Team member cards ---- */
+.team-card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 1.4rem 1.2rem;
+    text-align: center;
+    height: 100%;
+    transition: all 0.2s ease;
+}
+.team-card:hover {
+    border-color: var(--primary-dark);
+    transform: translateY(-3px);
+}
+.team-avatar {
+    width: 84px;
+    height: 84px;
+    border-radius: 50%;
+    margin: 0 auto 0.9rem auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.1rem;
+    font-weight: 700;
+    color: #FFFFFF;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    border: 3px solid #2A313D;
+    overflow: hidden;
+}
+.team-avatar img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+}
+.team-name {
+    color: #FFFFFF;
+    font-family: 'Poppins', sans-serif;
+    font-weight: 600;
+    font-size: 1.05rem;
+    margin-bottom: 0.15rem;
+}
+.team-role {
+    display: inline-block;
+    color: var(--primary);
+    background-color: rgba(90, 169, 214, 0.12);
+    border: 1px solid rgba(90, 169, 214, 0.35);
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.15rem 0.7rem;
+    margin-bottom: 0.9rem;
+    letter-spacing: 0.02em;
+}
+.team-links {
+    display: flex;
+    justify-content: center;
+    gap: 0.6rem;
+}
+.team-links a {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    color: var(--text-main) !important;
+    background-color: var(--bg-input);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    transition: all 0.2s ease;
+}
+.team-links a svg {
+    width: 18px;
+    height: 18px;
+    fill: var(--text-main);
+    transition: fill 0.2s ease;
+}
+.team-links a:hover {
+    background-color: var(--primary-dark);
+    border-color: var(--primary-dark);
+}
+.team-links a:hover svg {
+    fill: #FFFFFF;
+}
 </style>
 """, unsafe_allow_html=True)
 
@@ -700,28 +785,28 @@ with tab_info:
 
     # Feature cards
     col1, col2, col3 = st.columns(3)
-    
+
     with col1:
         st.markdown("""
-        <div class="feature-card" style="background-color: #E8F4F8; padding: 1.5rem; border-radius: 12px; border-left: 4px solid #2E86AB;">
-            <h3 style="margin-top: 0; color: #1D3557;">🔒 Aman</h3>
-            <p style="margin: 0; color: #555;">Ed25519 + SHA-256 dengan enkripsi password</p>
+        <div class="feature-card" style="border-left: 4px solid #2E86AB;">
+            <h3>🔒 Aman</h3>
+            <p>Ed25519 + SHA-256 dengan enkripsi password</p>
         </div>
         """, unsafe_allow_html=True)
-    
+
     with col2:
         st.markdown("""
-        <div class="feature-card" style="background-color: #E8F8F0; padding: 1.5rem; border-radius: 12px; border-left: 4px solid #28A745;">
-            <h3 style="margin-top: 0; color: #1D3557;">✅ Valid</h3>
-            <p style="margin: 0; color: #555;">Deteksi tampering & wrong key</p>
+        <div class="feature-card" style="border-left: 4px solid #28A745;">
+            <h3>✅ Valid</h3>
+            <p>Deteksi tampering & wrong key</p>
         </div>
         """, unsafe_allow_html=True)
-    
+
     with col3:
         st.markdown("""
-        <div class="feature-card" style="background-color: #FFF8E8; padding: 1.5rem; border-radius: 12px; border-left: 4px solid #FFC107;">
-            <h3 style="margin-top: 0; color: #1D3557;">📱 QR Code</h3>
-            <p style="margin: 0; color: #555;">Verifikasi cepat dengan QR</p>
+        <div class="feature-card" style="border-left: 4px solid #FFC107;">
+            <h3>📱 QR Code</h3>
+            <p>Verifikasi cepat dengan QR</p>
         </div>
         """, unsafe_allow_html=True)
 
@@ -729,48 +814,116 @@ with tab_info:
 
     st.markdown("""
     **eSignGuard** adalah aplikasi tanda tangan digital untuk dokumen.
-    
+
     Gunakan aplikasi ini untuk:
     - ✍️ Menandatangani dokumen dengan kunci kriptografi
     - 🔒 Memastikan dokumen tidak diubah setelah ditandatangani
     - ✅ Memverifikasi keaslian dokumen dan tanda tangan
-    
+
     ---
-    
+
     ## Cara Penggunaan
-    
+
     1. **Generate Key** - Buat pasangan kunci (private & public)
     2. **Sign Document** - Tanda tangani dokumen dengan private key
     3. **Verify Document** - Verifikasi dokumen dengan public key
-    
+
     ---
-    
+
     ## Keamanan
-    
+
     ⚠️ **PENTING:**
     - Simpan **private key** dan **password** dengan aman
     - **JANGAN** share private key atau password ke siapapun
     - Backup private key ke tempat aman (USB, cloud pribadi)
-    
+
     ---
-    
+
     ## Teknologi
-    
+
     - **Ed25519** - Algoritma tanda tangan digital
     - **SHA-256** - Hash kriptografis
     - **AES-256** - Enkripsi private key
-    
-    ---
-    
-    ## Anggota Kelompok
-    
-    | Nama | NIM |
-    |------|-----|
-    | Ismatul Ilmi | 247006111137 |
-    | Nabila Rohmatul Aulia | 247006111143 |
-    | Refa Adinda | 247006111197 |
-    
-    ---
-    
 
+    ---
     """)
+
+    st.subheader("👥 Pengembang")
+    st.caption("Tim pengembang eSignGuard — Universitas Siliwangi")
+
+    import base64
+    import os
+
+    def _avatar_html(image_path: str, initials: str) -> str:
+        """Return an <img> tag if the photo exists on disk, otherwise a
+        gradient circle with the person's initials so the layout never
+        breaks when assets/*.jpg is missing."""
+        if os.path.exists(image_path):
+            with open(image_path, "rb") as f:
+                encoded = base64.b64encode(f.read()).decode()
+            return f'<img src="data:image/jpeg;base64,{encoded}" />'
+        return initials
+
+    team_members = [
+        {
+            "name": "Ismatul Ilmi",
+            "role": "Backend Developer",
+            "initials": "II",
+            "image": "assets/ismatul.jpg",
+            "links": [
+                ("Instagram", "https://instagram.com/ilmysma"),
+                ("GitHub", "https://github.com/Ismatul724"),
+            ],
+        },
+        {
+            "name": "Nabila Rohmatul Aulia",
+            "role": "UI/UX Designer",
+            "initials": "NR",
+            "image": "assets/nabila.jpeg",
+            "links": [
+                ("Instagram", "https://instagram.com/nabilaara_"),
+                ("GitHub", "https://github.com/NABILAARA"),
+            ],
+        },
+        {
+            "name": "Refa Adinda Putri",
+            "role": "QA & Documentation",
+            "initials": "RA",
+            "image": "assets/refa.jpeg",
+            "links": [
+                ("Instagram", "https://instagram.com/refaadinda"),
+                ("GitHub", "https://github.com/247006111197-web"),
+            ],
+        },
+    ]
+
+    ICONS = {
+        "Instagram": (
+            '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">'
+            '<path d="M12 2c2.72 0 3.06.01 4.12.06 1.06.05 1.79.22 2.43.47.66.26 1.21.6 1.76 1.15.5.5.87 1.05 1.15 1.76.25.64.42 1.37.47 2.43.05 1.06.06 1.4.06 4.13s-.01 3.07-.06 4.13c-.05 1.06-.22 1.79-.47 2.43a4.93 4.93 0 0 1-1.15 1.76 4.93 4.93 0 0 1-1.76 1.15c-.64.25-1.37.42-2.43.47-1.06.05-1.4.06-4.12.06s-3.07-.01-4.13-.06c-1.06-.05-1.79-.22-2.43-.47a4.93 4.93 0 0 1-1.76-1.15 4.93 4.93 0 0 1-1.15-1.76c-.25-.64-.42-1.37-.47-2.43C2.01 15.07 2 14.73 2 12s.01-3.07.06-4.13c.05-1.06.22-1.79.47-2.43.26-.66.6-1.21 1.15-1.76A4.93 4.93 0 0 1 5.44 2.53c.64-.25 1.37-.42 2.43-.47C8.93 2.01 9.27 2 12 2Zm0 1.8c-2.67 0-2.99.01-4.04.06-.87.04-1.34.18-1.65.3-.42.16-.71.35-1.02.66-.31.31-.5.6-.66 1.02-.12.31-.26.78-.3 1.65C4.29 8.54 4.28 8.86 4.28 11.5v1c0 2.64.01 2.96.05 4.01.04.87.18 1.34.3 1.65.16.42.35.71.66 1.02.31.31.6.5 1.02.66.31.12.78.26 1.65.3 1.05.05 1.37.06 4.04.06s2.99-.01 4.04-.06c.87-.04 1.34-.18 1.65-.3.42-.16.71-.35 1.02-.66.31-.31.5-.6.66-1.02.12-.31.26-.78.3-1.65.05-1.05.06-1.37.06-4.01v-1c0-2.64-.01-2.96-.06-4.01-.04-.87-.18-1.34-.3-1.65a2.73 2.73 0 0 0-.66-1.02 2.73 2.73 0 0 0-1.02-.66c-.31-.12-.78-.26-1.65-.3C14.99 3.81 14.67 3.8 12 3.8Zm0 3.05a5.15 5.15 0 1 1 0 10.3 5.15 5.15 0 0 1 0-10.3Zm0 1.8a3.35 3.35 0 1 0 0 6.7 3.35 3.35 0 0 0 0-6.7Zm5.36-1.99a1.2 1.2 0 1 1 0 2.4 1.2 1.2 0 0 1 0-2.4Z"/>'
+            '</svg>'
+        ),
+        "GitHub": (
+            '<svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">'
+            '<path d="M12 2C6.48 2 2 6.58 2 12.19c0 4.49 2.87 8.3 6.84 9.65.5.1.68-.22.68-.49 0-.24-.01-1.04-.01-1.88-2.78.51-3.5-.7-3.72-1.33-.13-.33-.68-1.35-1.16-1.62-.4-.22-.97-.75-.01-.77.9-.01 1.54.84 1.76 1.19 1.03 1.75 2.67 1.25 3.32.96.1-.75.4-1.26.73-1.55-2.55-.29-5.23-1.29-5.23-5.72 0-1.26.44-2.3 1.16-3.11-.12-.3-.5-1.5.11-3.12 0 0 .95-.31 3.12 1.19a10.6 10.6 0 0 1 2.84-.39c.96.01 1.93.13 2.84.39 2.17-1.5 3.12-1.19 3.12-1.19.61 1.62.23 2.82.11 3.12.72.81 1.16 1.84 1.16 3.11 0 4.44-2.69 5.42-5.25 5.71.42.37.78 1.08.78 2.18 0 1.58-.01 2.85-.01 3.24 0 .27.18.6.69.49A10.02 10.02 0 0 0 22 12.19C22 6.58 17.52 2 12 2Z"/>'
+            '</svg>'
+        ),
+    }
+
+    team_cols = st.columns(3)
+
+    for col, member in zip(team_cols, team_members):
+        with col:
+            avatar_content = _avatar_html(member["image"], member["initials"])
+            links_html = "".join(
+                f'<a href="{url}" target="_blank" title="{label}">{ICONS[label]}</a>'
+                for label, url in member["links"]
+            )
+            st.markdown(f"""
+            <div class="team-card">
+                <div class="team-avatar">{avatar_content}</div>
+                <div class="team-name">{member["name"]}</div>
+                <div class="team-role">{member["role"]}</div>
+                <div class="team-links">{links_html}</div>
+            </div>
+            """, unsafe_allow_html=True)
