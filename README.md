@@ -41,6 +41,7 @@ Aplikasi ini sudah di-deploy dan bisa diakses di:
 - qr_utils.py - Generator QR Code
 - qr_verify.py - Verifikasi QR Code
 - benchmark.py - Script benchmark performa
+- assets/ - Foto tim
 - tests/test_crypto.py - Unit test
 - data/benchmark_results.json - Hasil benchmark
 - requirements.txt - Dependensi Python
@@ -202,19 +203,6 @@ Hasil benchmark dan test dapat direproduksi dengan menjalankan:
 python benchmark.py
 python -m pytest tests/
 ```
-## 📸 Screenshot
-
-### Generate Key
-![Generate Key](https://via.placeholder.com/600x400?text=Generate+Key)
-
-### Sign Document
-![Sign Document](https://via.placeholder.com/600x400?text=Sign+Document)
-
-### Verify Document
-![Verify Document](https://via.placeholder.com/600x400?text=Verify+Document)
-
-### Tentang
-![Tentang](https://via.placeholder.com/600x400?text=Tentang+eSignGuard)
 
 ## 👥 Tim Pengembang
 
