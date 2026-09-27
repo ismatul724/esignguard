@@ -881,28 +881,28 @@ with tab_info:
             "initials": "II",
             "image": "assets/ismatul.jpg",
             "links": [
-                ("Instagram", "https://instagram.com/ismatulilmi"),
-                ("GitHub", "https://github.com/ismatulilmi"),
+                ("Instagram", "https://instagram.com/Ilmysma"),
+                ("GitHub", "https://github.com/Ismatul724"),
             ],
         },
         {
             "name": "Nabila Rohmatul Aulia",
             "role": "UI/UX Designer",
             "initials": "NR",
-            "image": "assets/nabila.jpg",
+            "image": "assets/nabila.jpeg",
             "links": [
-                ("Instagram", "https://instagram.com/nabilarohmatul"),
-                ("GitHub", "https://github.com/nabilarohmatul"),
+                ("Instagram", "https://instagram.com/nabilaara_"),
+                ("GitHub", "https://github.com/NABILAARA"),
             ],
         },
         {
             "name": "Refa Adinda",
             "role": "QA & Documentation",
             "initials": "RA",
-            "image": "assets/refa.jpg",
+            "image": "assets/refa.jpeg",
             "links": [
                 ("Instagram", "https://instagram.com/refaadinda"),
-                ("GitHub", "https://github.com/refaadinda"),
+                ("GitHub", "https://github.com/247006111197-web"),
             ],
         },
     ]
