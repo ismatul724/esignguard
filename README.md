@@ -202,15 +202,33 @@ Hasil benchmark dan test dapat direproduksi dengan menjalankan:
 python benchmark.py
 python -m pytest tests/
 ```
+## 📸 Screenshot
 
+### Generate Key
+![Generate Key](https://via.placeholder.com/600x400?text=Generate+Key)
 
-## Anggota Kelompok
+### Sign Document
+![Sign Document](https://via.placeholder.com/600x400?text=Sign+Document)
 
-| Nama | NIM |
-|------|-----|
-| Ismatul Ilmi | 247006111137 |
-| Nabila Rohmatul Aulia | 247006111143 |
-| Refa Adinda | 247006111197 |
+### Verify Document
+![Verify Document](https://via.placeholder.com/600x400?text=Verify+Document)
+
+### Tentang
+![Tentang](https://via.placeholder.com/600x400?text=Tentang+eSignGuard)
+
+## 👥 Tim Pengembang
+
+| Nama | NIM | Role |
+|------|-----|------|
+| Ismatul Ilmi | 247006111137 | Backend Developer |
+| Nabila Rohmatul Aulia | 247006111143 | UI/UX Designer |
+| Refa Adinda | 247006111197 | QA & Documentation |
+
+### 🌐 Kontak
+
+- **Ismatul Ilmi**: [Instagram](https://instagram.com/Ilmysma) · [GitHub](https://github.com/Ismatul724)
+- **Nabila Rohmatul Aulia**: [Instagram](https://instagram.com/nabilaara_) · [GitHub](https://github.com/NABILAARA)
+- **Refa Adinda**: [Instagram](https://instagram.com/refaadinda) · [GitHub](https://github.com/247006111197-web)
 
 
 ## Lisensi
