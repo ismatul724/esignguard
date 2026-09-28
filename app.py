@@ -405,9 +405,17 @@ st.markdown("""
 if "generated_private_pem" not in st.session_state:
     st.session_state.generated_private_pem = None
 
-
 if "generated_public_pem" not in st.session_state:
     st.session_state.generated_public_pem = None
+
+if "generated_private_pem_2" not in st.session_state:
+    st.session_state.generated_private_pem_2 = None
+
+if "generated_public_pem_2" not in st.session_state:
+    st.session_state.generated_public_pem_2 = None
+
+if "is_multisignature_mode" not in st.session_state:
+    st.session_state.is_multisignature_mode = False
 
 
 if "signed_signature_data" not in st.session_state:
@@ -453,7 +461,6 @@ with tab_key:
         "Private key hanya digunakan untuk menandatangani dokumen."
     )
 
-    # Tampilkan persyaratan password
     st.info(
         "**Persyaratan password:**\n"
         "- Minimal 8 karakter\n"
@@ -461,70 +468,168 @@ with tab_key:
         "- Harus mengandung angka"
     )
 
+    enable_multisignature_key = st.checkbox(
+        "Aktifkan multi-signature (generate key untuk 2 penandatangan)",
+        value=st.session_state.is_multisignature_mode,
+        help="Centang jika dokumen akan ditandatangani oleh lebih dari satu orang.",
+        key="enable_multisignature_key",
+    )
+
+    st.markdown("---")
+
+    # ── Penandatangan 1 ──────────────────────────────────────
+    if enable_multisignature_key:
+        st.markdown("#### 👤 Penandatangan 1")
+
     password = st.text_input(
-        "Password private key",
+        "Password private key" if not enable_multisignature_key else "Password private key — Penandatangan 1",
         type="password",
         help="Minimal 8 karakter, harus ada huruf dan angka.",
-        key="generate_password"
+        key="generate_password",
     )
 
     confirm_password = st.text_input(
-        "Konfirmasi password",
+        "Konfirmasi password" if not enable_multisignature_key else "Konfirmasi password — Penandatangan 1",
         type="password",
-        key="generate_confirm_password"
+        key="generate_confirm_password",
     )
 
-    if st.button("Generate Key Pair", type="primary"):
+    # ── Penandatangan 2 (hanya jika multi-signature) ─────────
+    if enable_multisignature_key:
+        st.markdown("#### 👤 Penandatangan 2")
+
+        password_2 = st.text_input(
+            "Password private key — Penandatangan 2",
+            type="password",
+            help="Boleh sama atau berbeda dengan password penandatangan 1.",
+            key="generate_password_2",
+        )
+
+        confirm_password_2 = st.text_input(
+            "Konfirmasi password — Penandatangan 2",
+            type="password",
+            key="generate_confirm_password_2",
+        )
+
+    # ── Tombol generate ──────────────────────────────────────
+    btn_label = "Generate Key Pair" if not enable_multisignature_key else "Generate 2 Key Pair"
+
+    if st.button(btn_label, type="primary"):
+        # Validasi penandatangan 1
         if not password:
-            st.warning("Masukkan password terlebih dahulu.")
+            st.warning("Masukkan password penandatangan 1 terlebih dahulu.")
         elif password != confirm_password:
-            st.error("Konfirmasi password tidak sama.")
+            st.error("Konfirmasi password penandatangan 1 tidak sama.")
+        elif enable_multisignature_key and not password_2:
+            st.warning("Masukkan password penandatangan 2 terlebih dahulu.")
+        elif enable_multisignature_key and password_2 != confirm_password_2:
+            st.error("Konfirmasi password penandatangan 2 tidak sama.")
         else:
             try:
-                # Validasi password
                 is_valid, error_msg = validate_password(password)
                 if not is_valid:
-                    st.error(f"❌ {error_msg}")
+                    st.error(f"❌ Penandatangan 1: {error_msg}")
                     st.stop()
 
-                private_pem, public_pem = generate_key_pair(password)
+                if enable_multisignature_key:
+                    is_valid_2, error_msg_2 = validate_password(password_2)
+                    if not is_valid_2:
+                        st.error(f"❌ Penandatangan 2: {error_msg_2}")
+                        st.stop()
 
+                # Generate key pertama
+                private_pem, public_pem = generate_key_pair(password)
                 st.session_state.generated_private_pem = private_pem
                 st.session_state.generated_public_pem = public_pem
 
-                st.success(
-                    "Key pair Ed25519 berhasil dibuat. "
-                    "Silakan download kedua file di bawah ini."
-                )
+                if enable_multisignature_key:
+                    # Generate key kedua
+                    private_pem_2, public_pem_2 = generate_key_pair(password_2)
+                    st.session_state.generated_private_pem_2 = private_pem_2
+                    st.session_state.generated_public_pem_2 = public_pem_2
+                    st.session_state.is_multisignature_mode = True
+                    st.success(
+                        "2 key pair Ed25519 berhasil dibuat untuk multi-signature. "
+                        "Silakan download keempat file di bawah ini."
+                    )
+                else:
+                    st.session_state.generated_private_pem_2 = None
+                    st.session_state.generated_public_pem_2 = None
+                    st.session_state.is_multisignature_mode = False
+                    st.success(
+                        "Key pair Ed25519 berhasil dibuat. "
+                        "Silakan download kedua file di bawah ini."
+                    )
 
             except ValueError as error:
                 st.error(str(error))
 
+    # ── Hasil download ───────────────────────────────────────
     if st.session_state.generated_private_pem is not None:
-        st.success(
-            "Key pair siap diunduh. Download private key dan public key "
-            "dari pasangan yang sama."
-        )
 
-        col1, col2 = st.columns(2)
+        if st.session_state.is_multisignature_mode and st.session_state.generated_private_pem_2 is not None:
+            st.success("2 key pair siap diunduh.")
 
-        with col1:
-            st.download_button(
-                label="⬇️ Download Private Key Terenkripsi",
-                data=st.session_state.generated_private_pem,
-                file_name="private_key_encrypted.pem",
-                mime="application/x-pem-file",
-                key="download_private_key"
+            st.markdown("**Penandatangan 1**")
+            col1, col2 = st.columns(2)
+            with col1:
+                st.download_button(
+                    label="⬇️ Download Private Key 1",
+                    data=st.session_state.generated_private_pem,
+                    file_name="private_key_1_encrypted.pem",
+                    mime="application/x-pem-file",
+                    key="download_private_key_1",
+                )
+            with col2:
+                st.download_button(
+                    label="⬇️ Download Public Key 1",
+                    data=st.session_state.generated_public_pem,
+                    file_name="public_key_1.pem",
+                    mime="application/x-pem-file",
+                    key="download_public_key_1",
+                )
+
+            st.markdown("**Penandatangan 2**")
+            col3, col4 = st.columns(2)
+            with col3:
+                st.download_button(
+                    label="⬇️ Download Private Key 2",
+                    data=st.session_state.generated_private_pem_2,
+                    file_name="private_key_2_encrypted.pem",
+                    mime="application/x-pem-file",
+                    key="download_private_key_2",
+                )
+            with col4:
+                st.download_button(
+                    label="⬇️ Download Public Key 2",
+                    data=st.session_state.generated_public_pem_2,
+                    file_name="public_key_2.pem",
+                    mime="application/x-pem-file",
+                    key="download_public_key_2",
+                )
+
+        else:
+            st.success(
+                "Key pair siap diunduh. Download private key dan public key "
+                "dari pasangan yang sama."
             )
-
-        with col2:
-            st.download_button(
-                label="⬇️ Download Public Key",
-                data=st.session_state.generated_public_pem,
-                file_name="public_key.pem",
-                mime="application/x-pem-file",
-                key="download_public_key"
-            )
+            col1, col2 = st.columns(2)
+            with col1:
+                st.download_button(
+                    label="⬇️ Download Private Key Terenkripsi",
+                    data=st.session_state.generated_private_pem,
+                    file_name="private_key_encrypted.pem",
+                    mime="application/x-pem-file",
+                    key="download_private_key",
+                )
+            with col2:
+                st.download_button(
+                    label="⬇️ Download Public Key",
+                    data=st.session_state.generated_public_pem,
+                    file_name="public_key.pem",
+                    mime="application/x-pem-file",
+                    key="download_public_key",
+                )
 
         st.warning(
             "Simpan private key dan password dengan aman. Jangan unggah "
@@ -577,14 +682,14 @@ with tab_sign:
         help="Maksimal 150 karakter",
     )
 
-    enable_multisignature = st.checkbox(
-        "Aktifkan multi-signature untuk dokumen ini",
-        value=False,
-        help=(
-            "Centang jika dokumen akan ditandatangani oleh lebih dari "
-            "satu orang."
-        ),
-    )
+    enable_multisignature = st.session_state.is_multisignature_mode
+
+    if enable_multisignature:
+        st.info(
+            "🔐 **Mode multi-signature aktif.** Key pair untuk 2 penandatangan "
+            "sudah digenerate. Dokumen ini akan ditandatangani oleh penandatangan pertama. "
+            "Penandatangan kedua menambahkan tanda tangan di tab **➕ Tambah Tanda Tangan**."
+        )
 
     if st.button("Tandatangani Dokumen", type="primary"):
         if document_file is None:
