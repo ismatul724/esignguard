@@ -468,6 +468,21 @@ with tab_key:
         "- Harus mengandung angka"
     )
 
+    # ── Form Penandatangan 1 ─────────────────────────────────
+    password = st.text_input(
+        "Password private key",
+        type="password",
+        help="Minimal 8 karakter, harus ada huruf dan angka.",
+        key="generate_password",
+    )
+
+    confirm_password = st.text_input(
+        "Konfirmasi password",
+        type="password",
+        key="generate_confirm_password",
+    )
+
+    # ── Checkbox (sebelum tombol Generate) ───────────────────
     enable_multisignature_key = st.checkbox(
         "Aktifkan multi-signature (generate key untuk 2 penandatangan)",
         value=st.session_state.is_multisignature_mode,
@@ -475,26 +490,7 @@ with tab_key:
         key="enable_multisignature_key",
     )
 
-    st.markdown("---")
-
-    # ── Penandatangan 1 ──────────────────────────────────────
-    if enable_multisignature_key:
-        st.markdown("#### 👤 Penandatangan 1")
-
-    password = st.text_input(
-        "Password private key" if not enable_multisignature_key else "Password private key — Penandatangan 1",
-        type="password",
-        help="Minimal 8 karakter, harus ada huruf dan angka.",
-        key="generate_password",
-    )
-
-    confirm_password = st.text_input(
-        "Konfirmasi password" if not enable_multisignature_key else "Konfirmasi password — Penandatangan 1",
-        type="password",
-        key="generate_confirm_password",
-    )
-
-    # ── Penandatangan 2 (hanya jika multi-signature) ─────────
+    # ── Form Penandatangan 2 (muncul jika checkbox dicentang) ─
     if enable_multisignature_key:
         st.markdown("#### 👤 Penandatangan 2")
 
