@@ -2,6 +2,7 @@ import json
 import streamlit as st
 
 from audit_utils import AuditTrail, create_document_id
+from local_storage import inject_localstorage_reader
 from crypto_utils import (
     add_document_signature,
     create_multisignature_data,
@@ -449,6 +450,16 @@ if "multisignature_qr_bytes" not in st.session_state:
 
 # ── Inisialisasi audit trail ─────────────────────────────────
 audit = AuditTrail()
+
+# ── localStorage: inject reader & load saat pertama kali ─────
+# Inject JS reader hanya sekali per sesi untuk baca localStorage
+if "audit_ls_loaded" not in st.session_state:
+    # Coba load dari localStorage dulu (via query param yg di-set JS)
+    loaded = audit.load_from_localstorage()
+    if not loaded:
+        # Belum ada data di query param → inject JS reader untuk fetch
+        inject_localstorage_reader()
+    st.session_state["audit_ls_loaded"] = True
 
 tab_key, tab_sign, tab_add_signature, tab_verify, tab_audit, tab_info = st.tabs([
     "🔑 Generate Key",
