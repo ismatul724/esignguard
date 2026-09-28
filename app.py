@@ -443,6 +443,9 @@ if "multisignature_json_bytes" not in st.session_state:
 if "multisignature_document_name" not in st.session_state:
     st.session_state.multisignature_document_name = None
 
+if "multisignature_qr_bytes" not in st.session_state:
+    st.session_state.multisignature_qr_bytes = None
+
 
 tab_key, tab_sign, tab_add_signature, tab_verify, tab_info = st.tabs([
     "🔑 Generate Key",
@@ -492,7 +495,6 @@ with tab_key:
 
     # ── Form Penandatangan 2 (muncul jika checkbox dicentang) ─
     if enable_multisignature_key:
-        st.markdown("#### 👤 Penandatangan 2")
 
         password_2 = st.text_input(
             "Password private key — Penandatangan 2",
@@ -800,7 +802,14 @@ with tab_sign:
 
         st.subheader("QR Code Verifikasi")
 
-        if qr_bytes is not None:
+        if signature_data.get("signature_type") == "multi-signature":
+            st.info(
+                "📋 **QR Code belum tersedia.**\n\n"
+                "Pergi ke tab **➕ Tambah Tanda Tangan** untuk menyelesaikan "
+                "proses multi-signature. QR Code akan otomatis tergenerate "
+                "setelah penandatangan kedua selesai menambahkan tanda tangan."
+            )
+        elif qr_bytes is not None:
             st.image(qr_bytes, width=420)
         else:
             st.warning(
@@ -820,7 +829,9 @@ with tab_sign:
             )
 
         with download_2:
-            if qr_bytes is not None:
+            if signature_data.get("signature_type") == "multi-signature":
+                st.caption("QR Code tersedia setelah penandatangan 2 selesai.")
+            elif qr_bytes is not None:
                 st.download_button(
                     label="⬇️ Download QR Code",
                     data=qr_bytes,
@@ -863,29 +874,29 @@ with tab_add_signature:
     )
 
     multi_private_key_file = st.file_uploader(
-        "Pilih private key penandatangan berikutnya (.pem)",
+        "Pilih private key penandatangan 2 (.pem)",
         type=["pem"],
         key="multi_private_key",
     )
 
     multi_password = st.text_input(
-        "Password private key penandatangan berikutnya",
+        "Password private key penandatangan 2",
         type="password",
         key="multi_password",
     )
 
     multi_signer_name = st.text_input(
-        "Nama penandatangan berikutnya",
+        "Nama penandatangan 2",
         key="multi_signer_name",
     )
 
     multi_signer_role = st.text_input(
-        "Jabatan / peran penandatangan berikutnya",
+        "Jabatan / peran penandatangan 2",
         key="multi_signer_role",
     )
 
     multi_institution = st.text_input(
-        "Institusi penandatangan berikutnya",
+        "Institusi penandatangan 2",
         value="Universitas Siliwangi",
         key="multi_institution",
     )
@@ -896,7 +907,7 @@ with tab_add_signature:
         elif multi_signature_file is None:
             st.warning("Pilih signature JSON multi-signature.")
         elif multi_private_key_file is None:
-            st.warning("Pilih private key penandatangan berikutnya.")
+            st.warning("Pilih private key penandatangan 2.")
         elif not multi_password:
             st.warning("Masukkan password private key.")
         elif not multi_signer_name:
@@ -919,6 +930,9 @@ with tab_add_signature:
                 st.session_state.multisignature_document_name = (
                     multi_document_file.name
                 )
+                st.session_state.multisignature_qr_bytes = create_qr_code(
+                    updated_signature_data
+                )
 
                 signer_count = len(updated_signature_data["signatures"])
 
@@ -940,16 +954,35 @@ with tab_add_signature:
             "Signature JSON multi-signature yang diperbarui siap diunduh."
         )
 
-        st.download_button(
-            label="⬇️ Download Multi-Signature JSON",
-            data=st.session_state.multisignature_json_bytes,
-            file_name=(
-                f"{st.session_state.multisignature_document_name}"
-                ".multisignature.json"
-            ),
-            mime="application/json",
-            key="download_multisignature_json",
-        )
+        doc_name = st.session_state.multisignature_document_name
+        dl_col1, dl_col2 = st.columns(2)
+
+        with dl_col1:
+            st.download_button(
+                label="⬇️ Download Multi-Signature JSON",
+                data=st.session_state.multisignature_json_bytes,
+                file_name=f"{doc_name}.multisignature.json",
+                mime="application/json",
+                key="download_multisignature_json",
+            )
+
+        with dl_col2:
+            if st.session_state.multisignature_qr_bytes is not None:
+                st.download_button(
+                    label="⬇️ Download QR Code",
+                    data=st.session_state.multisignature_qr_bytes,
+                    file_name=f"{doc_name}.multisignature.qrcode.png",
+                    mime="image/png",
+                    key="download_multisignature_qr",
+                )
+
+        if st.session_state.multisignature_qr_bytes is not None:
+            st.subheader("QR Code Verifikasi")
+            st.image(st.session_state.multisignature_qr_bytes, width=420)
+            st.info(
+                "QR Code ini menyegel seluruh penandatangan. Simpan bersama "
+                "dokumen asli, signature JSON, dan semua public key untuk verifikasi."
+            )
 
 
 with tab_verify:
