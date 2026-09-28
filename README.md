@@ -1,10 +1,10 @@
 # eSignGuard
 
 ![Python](https://img.shields.io/badge/Python-3.8+-blue)
-![Streamlit](https://img.shields.io/badge/Streamlit-1.30+-red)
+![Streamlit](https://img.shields.io/badge/Streamlit-1.64.0-red)
 ![License](https://img.shields.io/badge/License-MIT-green)
 
-Aplikasi web tanda tangan digital dokumen berbasis Python dan Streamlit.
+Aplikasi web tanda tangan digital dokumen berbasis Python dan Streamlit menggunakan algoritma **Ed25519** dan **SHA-256**.
 
 ## 🚀 Live Demo
 
@@ -12,43 +12,68 @@ Aplikasi ini sudah di-deploy dan bisa diakses di:
 
 👉 [https://esignguard.streamlit.app/](https://esignguard.streamlit.app/)
 
+---
+
 ## Fitur
 
 - Generate pasangan key Ed25519 (single atau multi-signature)
-- Private key disimpan dalam format PEM terenkripsi password
+- Private key disimpan dalam format PEM terenkripsi password (AES-256)
 - Tanda tangan dokumen menggunakan hash SHA-256
 - Dukungan multi-signature (lebih dari satu penandatangan)
-- Pembuatan signature dalam format JSON
+- Pembuatan signature dalam format JSON (versi 1.1 dan 1.2)
 - QR Code verifikasi yang menyegel seluruh penandatangan
 - Verifikasi dokumen asli (single maupun multi-signature)
 - Deteksi perubahan/tampering dokumen
 - Deteksi public key yang salah
+- **Password strength indicator** real-time (`app_secure.py`)
+- **Audit Trail** — pencatatan aktivitas penting, persistent via localStorage browser
 
+---
 
 ## Teknologi
 
 - **Python 3.8+**
-- **Streamlit** - Framework aplikasi web
-- **cryptography** - Library kriptografi
-- **Ed25519** - Algoritma tanda tangan digital
-- **SHA-256** - Fungsi hash kriptografis
-- **qrcode** - Generator QR Code
-- **Pillow** - Pemrosesan gambar
+- **Streamlit 1.64** — framework aplikasi web
+- **cryptography 50.0** — library kriptografi (Ed25519, PKCS8, AES-256)
+- **SHA-256** — fungsi hash kriptografis untuk integritas dokumen
+- **qrcode 8.2** — generator QR Code
+- **OpenCV (opencv-python-headless)** — dekoder QR Code
+- **Pillow 12.3** — pemrosesan gambar
+- **streamlit-local-storage** — persistensi audit trail di browser
+
+---
 
 ## Struktur Folder
 
-- app.py - Aplikasi Streamlit utama
-- crypto_utils.py - Fungsi kriptografi (generate key, sign, verify)
-- qr_utils.py - Generator QR Code
-- qr_verify.py - Verifikasi QR Code
-- benchmark.py - Script benchmark performa
-- assets/ - Foto tim
-- tests/test_crypto.py - Unit test
-- data/benchmark_results.json - Hasil benchmark
-- requirements.txt - Dependensi Python
-- .gitignore - File yang di-ignore Git
-- README.md - Dokumentasi ini
+```
+esignguard/
+├── app.py                    # Aplikasi Streamlit utama
+├── app_secure.py             # Versi secure dengan password strength indicator
+├── crypto_utils.py           # Engine kriptografi (generate key, sign, verify)
+├── qr_utils.py               # Generator QR Code PNG
+├── qr_verify.py              # Dekoder QR Code (OpenCV)
+├── audit_utils.py            # Audit trail (session state + localStorage)
+├── local_storage.py          # Jembatan ke localStorage browser
+├── security_utils.py         # Utilitas keamanan tambahan
+├── config.py                 # Konfigurasi aplikasi
+├── benchmark.py              # Script benchmark performa
+├── tamper_file.py            # Script demo tampering dokumen
+├── test_qr_read.py           # Script uji baca QR Code
+├── run_secure.py             # Entry point versi secure
+├── assets/                   # Foto tim pengembang
+│   ├── ismatul.jpg
+│   ├── nabila.jpeg
+│   └── refa.jpeg
+├── tests/
+│   └── test_crypto.py        # 5 unit test kriptografi
+├── data/
+│   └── benchmark_results.json
+├── requirements.txt          # Dependensi utama
+├── requirements_secure.txt   # Dependensi versi secure
+└── .gitignore
+```
 
+---
 
 ## Instalasi
 
@@ -59,7 +84,7 @@ git clone <URL_REPOSITORI>
 cd esignguard
 python3 -m venv .venv
 source .venv/bin/activate
-python -m pip install -r requirements.txt
+pip install -r requirements.txt
 ```
 
 ### Windows
@@ -69,66 +94,77 @@ git clone <URL_REPOSITORI>
 cd esignguard
 py -m venv .venv
 .venv\Scripts\activate
-python -m pip install -r requirements.txt
+pip install -r requirements.txt
 ```
 
+---
 
 ## Menjalankan Aplikasi
 
 ```bash
-python -m streamlit run app.py
+# Versi standar
+streamlit run app.py
+
+# Versi secure (password strength indicator + audit trail lebih lengkap)
+streamlit run app_secure.py
 ```
 
 Buka aplikasi di:
 
-```text
+```
 http://localhost:8501
 ```
 
+---
 
 ## Alur Penggunaan Lengkap
-
----
 
 ### A. Tanda Tangan Tunggal (Single Signature)
 
 Digunakan ketika dokumen hanya ditandatangani oleh satu orang.
 
-#### 1. Generate Key
+#### Langkah 1 — Generate Key
 
 1. Buka tab **🔑 Generate Key**.
-2. Masukkan password minimal 8 karakter (harus mengandung huruf dan angka).
-3. Masukkan password yang sama pada kolom konfirmasi.
-4. Pastikan checkbox **"Aktifkan multi-signature"** tidak dicentang.
-5. Klik **Generate Key Pair**.
-6. Download dua file yang dihasilkan:
-   - `private_key_encrypted.pem`
-   - `public_key.pem`
+2. Isi kolom **"Password private key"** — minimal 8 karakter, harus mengandung huruf dan angka.
+3. Isi kolom **"Konfirmasi password"** dengan password yang sama.
+4. Pastikan checkbox **"Aktifkan multi-signature (generate key untuk 2 penandatangan)"** **tidak** dicentang.
+5. Klik tombol **Generate Key Pair**.
+6. Download dua file yang muncul:
+   - `private_key_encrypted.pem` — kunci privat terenkripsi
+   - `public_key.pem` — kunci publik untuk verifikasi
 
-Simpan private key dan password dengan aman. **Jangan mengunggah private key ke GitHub.**
+> ⚠️ Simpan `private_key_encrypted.pem` dan passwordnya di tempat aman. Jangan unggah ke GitHub atau bagikan ke siapapun.
 
-#### 2. Menandatangani Dokumen
+---
+
+#### Langkah 2 — Tanda Tangani Dokumen
 
 1. Buka tab **✍️ Sign Document**.
-2. Upload dokumen yang akan ditandatangani.
+2. Upload dokumen yang akan ditandatangani (PDF atau format lain).
 3. Upload `private_key_encrypted.pem`.
 4. Masukkan password private key.
-5. Isi nama, jabatan, dan institusi penandatangan.
-6. Klik **Tandatangani Dokumen**.
+5. Isi kolom:
+   - **Nama penandatangan** (wajib)
+   - **Jabatan / peran** (opsional)
+   - **Institusi** (default: Universitas Siliwangi)
+6. Klik tombol **Tandatangani Dokumen**.
 7. Download dua file hasil:
-   - `nama_dokumen.signature.json` — berisi hash, signature, dan metadata
-   - `nama_dokumen.qrcode.png` — QR Code verifikasi
+   - `nama_dokumen.signature.json` — berisi hash SHA-256, signature Ed25519, dan metadata
+   - `nama_dokumen.qrcode.png` — QR Code untuk verifikasi cepat
 
-Simpan dokumen asli, signature JSON, QR Code, dan `public_key.pem` sebagai satu paket.
+> Simpan dokumen asli, `signature.json`, `public_key.pem`, dan `qrcode.png` sebagai satu paket — keempatnya dibutuhkan saat verifikasi.
 
-#### 3. Verifikasi Dokumen
+---
+
+#### Langkah 3 — Verifikasi Dokumen
 
 1. Buka tab **✅ Verify Document**.
-2. Upload dokumen asli.
-3. Upload file `signature.json`.
+2. Upload dokumen yang akan diverifikasi.
+3. Upload file `nama_dokumen.signature.json`.
 4. Upload `public_key.pem`.
-5. Upload QR Code (opsional).
-6. Klik **Verifikasi Dokumen**.
+5. Upload `nama_dokumen.qrcode.png` (opsional — gunakan file asli hasil download, bukan screenshot).
+6. Klik tombol **Verifikasi Dokumen**.
 
 Hasil yang diharapkan:
 
@@ -141,129 +177,256 @@ QR VALID — Hash QR Code cocok dengan dokumen yang diunggah.
 
 ### B. Multi-Signature (Dua Penandatangan)
 
-Digunakan ketika dokumen harus ditandatangani oleh dua orang.
+Digunakan ketika dokumen harus ditandatangani oleh dua orang atau lebih.
 
-#### 1. Generate 2 Key Pair
+#### Langkah 1 — Generate 2 Key Pair
 
 1. Buka tab **🔑 Generate Key**.
-2. Masukkan password untuk **Penandatangan 1** dan konfirmasinya.
+2. Isi kolom **"Password private key"** dan **"Konfirmasi password"** untuk **Penandatangan 1**.
 3. Centang checkbox **"Aktifkan multi-signature (generate key untuk 2 penandatangan)"**.
-4. Muncul form password untuk **Penandatangan 2** — isi dan konfirmasi.
-5. Klik **Generate 2 Key Pair**.
-6. Download empat file yang dihasilkan:
+4. Form untuk **Penandatangan 2** akan muncul — isi **"Password private key — Penandatangan 2"** dan konfirmasinya.
+5. Klik tombol **Generate 2 Key Pair**.
+6. Download empat file yang muncul:
    - `private_key_1_encrypted.pem` dan `public_key_1.pem` — untuk Penandatangan 1
    - `private_key_2_encrypted.pem` dan `public_key_2.pem` — untuk Penandatangan 2
 
-#### 2. Penandatangan Pertama Menandatangani
+---
+
+#### Langkah 2 — Penandatangan 1 Menandatangani
 
 1. Buka tab **✍️ Sign Document**.
-2. Muncul info biru: *"Mode multi-signature aktif"*.
-3. Upload dokumen yang akan ditandatangani.
-4. Upload `private_key_1_encrypted.pem`.
-5. Masukkan password Penandatangan 1.
-6. Isi nama, jabatan, dan institusi Penandatangan 1.
-7. Klik **Tandatangani Dokumen**.
-8. Download `nama_dokumen.signature.json` (belum ada QR Code pada tahap ini).
+2. Banner info biru muncul: *"Mode multi-signature aktif. Dokumen ini akan ditandatangani oleh penandatangan pertama."*
+3. Upload dokumen, lalu upload `private_key_1_encrypted.pem`.
+4. Masukkan password Penandatangan 1.
+5. Isi nama, jabatan, dan institusi Penandatangan 1.
+6. Klik tombol **Tandatangani Dokumen**.
+7. Download satu file hasil:
+   - `nama_dokumen.signature.json` — berisi signature Penandatangan 1
 
-#### 3. Penandatangan Kedua Menambahkan Tanda Tangan
+> QR Code belum tersedia di tahap ini — akan dibuat setelah semua penandatangan selesai.
+
+---
+
+#### Langkah 3 — Penandatangan 2 Menambahkan Tanda Tangan
 
 1. Buka tab **➕ Tambah Tanda Tangan**.
-2. Upload dokumen yang **sama persis** dengan dokumen di langkah sebelumnya.
-3. Upload `nama_dokumen.signature.json` dari langkah sebelumnya.
+2. Upload dokumen yang **sama persis** dengan dokumen pada Langkah 2 (tidak boleh berubah satu byte pun).
+3. Upload `nama_dokumen.signature.json` dari Langkah 2.
 4. Upload `private_key_2_encrypted.pem`.
 5. Masukkan password Penandatangan 2.
 6. Isi nama, jabatan, dan institusi Penandatangan 2.
-7. Klik **Tambahkan Tanda Tangan**.
+7. Klik tombol **Tambahkan Tanda Tangan**.
 8. Download dua file hasil:
-   - `nama_dokumen.multisignature.json` — berisi tanda tangan kedua penandatangan
-   - `nama_dokumen.multisignature.qrcode.png` — QR Code yang menyegel keduanya
+   - `nama_dokumen.multisignature.json` — berisi signature kedua penandatangan
+   - `nama_dokumen.multisignature.qrcode.png` — QR Code yang menyegel seluruh tanda tangan
 
-> QR Code hanya tergenerate setelah penandatangan kedua selesai karena QR menyegel seluruh tanda tangan.
+> QR Code baru dibuat di tahap ini karena QR menyegel semua penandatangan sekaligus. Simpan dokumen asli, `multisignature.json`, kedua public key, dan `qrcode.png` sebagai satu paket.
 
-#### 4. Verifikasi Multi-Signature
+---
+
+#### Langkah 4 — Verifikasi Multi-Signature
 
 1. Buka tab **✅ Verify Document**.
 2. Upload dokumen asli.
-3. Upload `nama_dokumen.multisignature.json` — aplikasi otomatis mendeteksi multi-signature dan meminta 2 public key.
-4. Upload `public_key_1.pem` untuk Penandatangan 1.
-5. Upload `public_key_2.pem` untuk Penandatangan 2.
-6. Upload QR Code (opsional).
-7. Klik **Verifikasi Dokumen**.
+3. Upload `nama_dokumen.multisignature.json`.
+4. Aplikasi otomatis mendeteksi multi-signature dan menampilkan slot upload public key untuk setiap penandatangan.
+5. Upload `public_key_1.pem` pada slot Penandatangan 1.
+6. Upload `public_key_2.pem` pada slot Penandatangan 2.
+7. Upload `nama_dokumen.multisignature.qrcode.png` (opsional).
+8. Klik tombol **Verifikasi Dokumen**.
 
 Hasil yang diharapkan:
 
 ```
 VALID — Dokumen autentik dan seluruh tanda tangan valid.
-1. Penandatangan 1 — VALID
-2. Penandatangan 2 — VALID
+1. [Nama Penandatangan 1] — VALID. Signature valid.
+2. [Nama Penandatangan 2] — VALID. Signature valid.
+QR VALID — Hash QR Code cocok dengan dokumen yang diunggah.
 ```
 
 ---
 
-### C. Menguji Skenario Kegagalan
+### C. Audit Trail
 
-#### Dokumen yang Diubah (Tampering)
+Tab **📊 Audit Trail** mencatat seluruh aktivitas penting selama sesi berlangsung.
 
-1. Ubah satu karakter pada dokumen asli.
-2. Upload dokumen yang sudah diubah di tab **Verify Document**.
-3. Gunakan signature JSON dan public key dari dokumen asli.
-4. Klik **Verifikasi Dokumen**.
+Aktivitas yang dicatat secara otomatis:
 
-Hasil yang diharapkan: `INVALID — Hash dokumen berbeda.`
+| Event | Kapan dicatat |
+|---|---|
+| `DOCUMENT_SIGNED` | Penandatanganan dokumen berhasil |
+| `DOCUMENT_SIGN_ERROR` | Error saat proses signing |
+| `MULTI_SIGNATURE_ADDED` | Penambahan tanda tangan kedua berhasil |
+| `MULTI_SIGNATURE_ERROR` | Error saat menambahkan tanda tangan |
+| `DOCUMENT_VERIFIED` | Verifikasi dokumen selesai (VALID maupun INVALID dicatat sebagai WARNING) |
+| `DOCUMENT_VERIFY_ERROR` | Error saat proses verifikasi |
+| `KEY_GENERATION_SUCCESS` | Generate key pair berhasil *(hanya di `app_secure.py`)* |
+| `KEY_GENERATION_ERROR` | Error saat generate key *(hanya di `app_secure.py`)* |
 
-#### Public Key yang Salah
+Setiap event mencatat: **timestamp (UTC)**, **jenis event**, **nama user**, **document ID** (SHA-256 dokumen), **severity** (INFO / WARNING / ERROR), dan **detail tambahan**.
 
-1. Generate pasangan key baru.
-2. Gunakan public key baru untuk memverifikasi dokumen yang ditandatangani dengan key lama.
-3. Klik **Verifikasi Dokumen**.
+**Penyimpanan:**
+- Data disimpan di **session state** Streamlit selama sesi aktif
+- Setiap event baru langsung disinkronkan ke **localStorage browser**
+- Audit trail tetap ada setelah refresh halaman, hilang jika cache browser dihapus atau buka di browser lain
 
-Hasil yang diharapkan: `INVALID — Signature tidak cocok dengan public key.`
-
-#### QR Code Palsu atau dari Dokumen Lain
-
-1. Upload dokumen dan signature JSON yang benar.
-2. Upload QR Code dari dokumen berbeda.
-3. Klik **Verifikasi Dokumen**.
-
-Hasil yang diharapkan: `QR TIDAK COCOK — Hash di QR Code tidak cocok dengan dokumen.`
+**Filter dan download:**
+- Filter berdasarkan jenis event atau severity (INFO / WARNING / ERROR)
+- Download laporan sebagai `audit_trail.json` atau `audit_trail.txt`
+- Tombol **🗑️ Hapus Semua Event** untuk membersihkan log dari session state dan localStorage
 
 ---
 
-### D. Memahami Hasil Verifikasi
+### D. Skenario Pengujian Kegagalan
+
+#### Dokumen yang Diubah (Tampering)
+
+1. Buat signature dari dokumen asli (ikuti Langkah 1–2 alur A).
+2. Ubah isi dokumen (tambah/hapus karakter, atau gunakan script `tamper_file.py`).
+3. Di tab **✅ Verify Document**, upload dokumen yang sudah diubah beserta signature JSON dan public key dari dokumen asli.
+4. Klik **Verifikasi Dokumen**.
+
+Hasil yang diharapkan:
+```
+INVALID — Hash dokumen berbeda. Dokumen telah diubah atau bukan dokumen yang ditandatangani.
+```
+
+#### Public Key yang Salah
+
+1. Generate pasangan key baru yang berbeda dari key yang digunakan saat signing.
+2. Di tab **✅ Verify Document**, upload dokumen asli dan signature JSON yang benar, tetapi gunakan **public key baru** (yang salah).
+3. Klik **Verifikasi Dokumen**.
+
+Hasil yang diharapkan:
+```
+INVALID — Signature tidak cocok dengan public key. Gunakan public key yang benar.
+```
+
+#### QR Code dari Dokumen Lain
+
+1. Upload dokumen dan signature JSON yang benar.
+2. Upload QR Code dari dokumen atau sesi signing yang berbeda.
+3. Klik **Verifikasi Dokumen**.
+
+Hasil yang diharapkan:
+```
+QR TIDAK COCOK — Hash di QR Code tidak cocok dengan dokumen yang diunggah.
+```
+
+---
+
+### E. Memahami Hasil Verifikasi
 
 | Hasil | Artinya |
 |---|---|
 | **VALID** | Hash dokumen cocok dan signature berhasil diverifikasi dengan public key |
-| **INVALID** | Dokumen berubah, signature rusak, atau public key tidak cocok |
+| **INVALID — Hash berbeda** | Dokumen telah berubah sejak ditandatangani |
+| **INVALID — Signature tidak cocok** | Public key yang digunakan salah atau signature rusak |
 | **QR VALID** | Hash di QR Code cocok dengan dokumen yang diunggah |
 | **QR TIDAK COCOK** | Hash di QR berbeda dari dokumen yang diunggah |
-| **QR TIDAK TERBACA** | File QR tidak dapat dibaca atau bukan dari eSignGuard |
+| **QR TIDAK TERBACA** | File QR tidak dapat dibaca — gunakan file PNG asli hasil download, bukan screenshot |
 
 > Jika hasil tidak sesuai, pastikan semua file berasal dari satu proses signing yang sama. Membuka dan menyimpan ulang PDF dapat mengubah byte file dan membuat hash berbeda.
 
+---
+
+## Format Signature JSON
+
+**Single-signature (versi 1.1):**
+
+```json
+{
+  "app_name": "eSignGuard",
+  "signature_version": "1.1",
+  "algorithm": "Ed25519",
+  "hash_algorithm": "SHA-256",
+  "document_name": "nama_dokumen.pdf",
+  "document_sha256": "<hash-hex>",
+  "signature_base64": "<ed25519-signature>",
+  "signature_size_bytes": 64,
+  "metadata": {
+    "signer_name": "Nama Penandatangan",
+    "signer_role": "Jabatan",
+    "institution": "Institusi",
+    "signed_at_utc": "2026-09-29T..."
+  }
+}
+```
+
+**Multi-signature (versi 1.2):**
+
+```json
+{
+  "app_name": "eSignGuard",
+  "signature_version": "1.2",
+  "signature_type": "multi-signature",
+  "hash_algorithm": "SHA-256",
+  "document_name": "nama_dokumen.pdf",
+  "document_sha256": "<hash-hex>",
+  "signatures": [
+    {
+      "algorithm": "Ed25519",
+      "signature_base64": "<ed25519-signature>",
+      "signature_size_bytes": 64,
+      "metadata": { "signer_name": "...", "signed_at_utc": "..." }
+    },
+    {
+      "algorithm": "Ed25519",
+      "signature_base64": "<ed25519-signature>",
+      "signature_size_bytes": 64,
+      "metadata": { "signer_name": "...", "signed_at_utc": "..." }
+    }
+  ]
+}
+```
+
+---
 
 ## Keamanan
 
-- ⚠️ **Jangan unggah private key, password, atau file `.pem` ke GitHub.**
-- ⚠️ **Jangan unggah dokumen sensitif ke repository.**
-- Private key dibuat dalam format terenkripsi menggunakan password (AES-256).
+- Private key dienkripsi dengan **AES-256** (PKCS8) menggunakan password
+- Input user disanitasi untuk mencegah XSS
+- Password divalidasi: minimal 8 karakter, mengandung huruf dan angka
+- `app_secure.py` menambahkan **password strength indicator** (lemah / sedang / kuat)
 
+⚠️ **PENTING:**
+- **Jangan unggah private key atau file `.pem` ke GitHub**
+- **Jangan unggah dokumen sensitif ke repository**
+- Simpan private key dan password di tempat yang aman
+- Backup private key — jika hilang, dokumen tidak bisa diverifikasi ulang
+
+---
 
 ## Benchmark & Testing
 
-Aplikasi ini telah diuji dengan:
+Hasil benchmark (30 iterasi, dokumen ~5KB):
 
-- **Unit test**: 5 test cases (key generation, signing, verification, tampering detection)
-- **Benchmark**: 30 iterasi signing dan verification untuk mengukur performa
+| Operasi | Rata-rata | Min | Maks |
+|---|---|---|---|
+| Generate key pair | 4.88 ms | — | — |
+| Signing | 0.61 ms | 0.55 ms | 1.07 ms |
+| Verifikasi | 0.14 ms | 0.12 ms | 0.25 ms |
+| Ukuran signature (base64) | 88 karakter | — | — |
+| Ukuran public key (PEM) | 113 byte | — | — |
 
-Hasil benchmark dan test dapat direproduksi dengan menjalankan:
+Reproduksi benchmark dan unit test:
 
 ```bash
+# Benchmark performa
 python benchmark.py
+
+# Unit test (5 test case)
 python -m pytest tests/
+
+# Uji baca QR Code (butuh file di folder demo_berhasil/)
+python test_qr_read.py
 ```
 
+---
+
 ## 👥 Tim Pengembang
+
+Kelompok eSignGuard — Universitas Siliwangi
 
 | Nama | NIM | Role |
 |------|-----|------|
@@ -271,13 +434,14 @@ python -m pytest tests/
 | Nabila Rohmatul Aulia | 247006111143 | Developer |
 | Refa Adinda | 247006111197 | QA & Documentation |
 
-### 🌐 Kontak
+### Kontak
 
 - **Ismatul Ilmi**: [Instagram](https://instagram.com/Ilmysma) · [GitHub](https://github.com/Ismatul724)
 - **Nabila Rohmatul Aulia**: [Instagram](https://instagram.com/nabilaara_) · [GitHub](https://github.com/NABILAARA)
 - **Refa Adinda**: [Instagram](https://www.instagram.com/refaadiindaa) · [GitHub](https://github.com/247006111197-web)
 
+---
 
 ## Lisensi
 
-Proyek ini dibuat untuk tujuan edukasi.
+Proyek ini dibuat untuk tujuan edukasi — UTS Keamanan Informasi, Universitas Siliwangi.
