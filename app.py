@@ -1,6 +1,7 @@
 import json
 import streamlit as st
 
+from audit_utils import AuditTrail, create_document_id
 from crypto_utils import (
     add_document_signature,
     create_multisignature_data,
@@ -446,12 +447,15 @@ if "multisignature_document_name" not in st.session_state:
 if "multisignature_qr_bytes" not in st.session_state:
     st.session_state.multisignature_qr_bytes = None
 
+# ── Inisialisasi audit trail ─────────────────────────────────
+audit = AuditTrail()
 
-tab_key, tab_sign, tab_add_signature, tab_verify, tab_info = st.tabs([
+tab_key, tab_sign, tab_add_signature, tab_verify, tab_audit, tab_info = st.tabs([
     "🔑 Generate Key",
     "✍️ Sign Document",
     "➕ Tambah Tanda Tangan",
     "✅ Verify Document",
+    "📊 Audit Trail",
     "ℹ️ Tentang"
 ])
 
@@ -749,11 +753,37 @@ with tab_sign:
                     signature_data
                 )
 
+                audit.add_audit_event(
+                    event_type="DOCUMENT_SIGNED",
+                    user_id=signer_name_clean,
+                    document_id=create_document_id(document_bytes),
+                    details={
+                        "document_name": document_file.name,
+                        "mode": "multi-signature" if enable_multisignature else "single-signature",
+                        "signer_role": signer_role_clean,
+                        "institution": institution_clean,
+                        "algorithm": "Ed25519",
+                        "hash_algorithm": "SHA-256",
+                    },
+                    severity="INFO",
+                )
+
                 st.success("Dokumen berhasil ditandatangani.")
 
             except ValueError as error:
+                audit.add_audit_event(
+                    event_type="DOCUMENT_SIGN_ERROR",
+                    user_id=signer_name if signer_name else "-",
+                    details={"error": str(error)},
+                    severity="ERROR",
+                )
                 st.error(str(error))
             except Exception as error:
+                audit.add_audit_event(
+                    event_type="DOCUMENT_SIGN_ERROR",
+                    details={"error": str(error)},
+                    severity="ERROR",
+                )
                 st.error(f"Terjadi kesalahan saat signing: {error}")
 
     if st.session_state.signed_signature_data is not None:
@@ -936,14 +966,40 @@ with tab_add_signature:
 
                 signer_count = len(updated_signature_data["signatures"])
 
+                audit.add_audit_event(
+                    event_type="MULTI_SIGNATURE_ADDED",
+                    user_id=multi_signer_name,
+                    document_id=create_document_id(multi_document_file.getvalue()),
+                    details={
+                        "document_name": multi_document_file.name,
+                        "signer_name": multi_signer_name,
+                        "signer_role": multi_signer_role,
+                        "institution": multi_institution,
+                        "total_signers": signer_count,
+                        "algorithm": "Ed25519",
+                    },
+                    severity="INFO",
+                )
+
                 st.success(
                     f"Tanda tangan berhasil ditambahkan. "
                     f"Total penandatangan: {signer_count}."
                 )
 
             except ValueError as error:
+                audit.add_audit_event(
+                    event_type="MULTI_SIGNATURE_ERROR",
+                    user_id=multi_signer_name if multi_signer_name else "-",
+                    details={"error": str(error)},
+                    severity="ERROR",
+                )
                 st.error(str(error))
             except Exception as error:
+                audit.add_audit_event(
+                    event_type="MULTI_SIGNATURE_ERROR",
+                    details={"error": str(error)},
+                    severity="ERROR",
+                )
                 st.error(
                     f"Terjadi kesalahan saat menambahkan tanda tangan: "
                     f"{error}"
@@ -1195,10 +1251,162 @@ with tab_verify:
                         f"{metadata.get('signed_at_utc', '-')}"
                     )
 
+                # ── Catat ke audit trail ──────────────────────
+                _meta = result.get("metadata", {}) if not is_multisignature else {}
+                audit.add_audit_event(
+                    event_type="DOCUMENT_VERIFIED",
+                    user_id=_meta.get("signer_name", "-") if not is_multisignature else "-",
+                    document_id=create_document_id(document_bytes),
+                    details={
+                        "document_name": verify_document_file.name,
+                        "mode": "multi-signature" if is_multisignature else "single-signature",
+                        "valid": result["valid"],
+                        **(
+                            {
+                                "total_signers": result["total_signers"],
+                                "valid_signatures": result["valid_signatures"],
+                            }
+                            if is_multisignature
+                            else {
+                                "signer_name": _meta.get("signer_name", "-"),
+                                "institution": _meta.get("institution", "-"),
+                            }
+                        ),
+                    },
+                    severity="INFO" if result["valid"] else "WARNING",
+                )
+
             except ValueError as error:
+                audit.add_audit_event(
+                    event_type="DOCUMENT_VERIFY_ERROR",
+                    details={"error": str(error), "document_name": verify_document_file.name if verify_document_file else "-"},
+                    severity="ERROR",
+                )
                 st.error(str(error))
             except Exception as error:
+                audit.add_audit_event(
+                    event_type="DOCUMENT_VERIFY_ERROR",
+                    details={"error": str(error)},
+                    severity="ERROR",
+                )
                 st.error(f"Terjadi kesalahan saat verifikasi: {error}")
+
+with tab_audit:
+    st.subheader("📊 Audit Trail")
+
+    st.write(
+        "Audit trail mencatat seluruh aktivitas penting dalam sesi ini: "
+        "signing, penambahan tanda tangan, dan verifikasi."
+    )
+
+    events = audit.get_audit_events(limit=9999)
+
+    if not events:
+        st.info("Belum ada aktivitas yang tercatat dalam sesi ini.")
+    else:
+        # ── Ringkasan metrik ──────────────────────────────────
+        summary = audit.get_audit_summary()
+        m1, m2, m3, m4 = st.columns(4)
+        with m1:
+            st.metric("Total Event", summary["total_events"])
+        with m2:
+            st.metric("INFO", summary["severity_counts"].get("INFO", 0))
+        with m3:
+            st.metric("WARNING", summary["severity_counts"].get("WARNING", 0))
+        with m4:
+            st.metric("ERROR", summary["severity_counts"].get("ERROR", 0))
+
+        st.markdown("---")
+
+        # ── Filter ────────────────────────────────────────────
+        filter_col1, filter_col2 = st.columns(2)
+        with filter_col1:
+            event_types = ["SEMUA"] + sorted(
+                set(e["event_type"] for e in events)
+            )
+            selected_type = st.selectbox(
+                "Filter Jenis Event",
+                event_types,
+                key="audit_filter_type",
+            )
+        with filter_col2:
+            selected_severity = st.selectbox(
+                "Filter Severity",
+                ["SEMUA", "INFO", "WARNING", "ERROR"],
+                key="audit_filter_severity",
+            )
+
+        filtered = events
+        if selected_type != "SEMUA":
+            filtered = [e for e in filtered if e["event_type"] == selected_type]
+        if selected_severity != "SEMUA":
+            filtered = [e for e in filtered if e["severity"] == selected_severity]
+
+        st.caption(f"Menampilkan {len(filtered)} dari {len(events)} event")
+
+        # ── Daftar event ──────────────────────────────────────
+        st.subheader("Daftar Event")
+
+        SEVERITY_ICON = {
+            "INFO": "🔵",
+            "WARNING": "🟡",
+            "ERROR": "🔴",
+            "CRITICAL": "🚨",
+        }
+
+        for event in filtered:
+            icon = SEVERITY_ICON.get(event["severity"], "⚪")
+            ts = event["timestamp"].replace("T", " ")[:19]
+
+            with st.expander(
+                f"{icon} {ts} — {event['event_type']} | User: {event['user_id']}",
+                expanded=False,
+            ):
+                col_a, col_b = st.columns(2)
+                with col_a:
+                    st.write(f"**Timestamp:** {event['timestamp']}")
+                    st.write(f"**Event:** {event['event_type']}")
+                    st.write(f"**Severity:** {event['severity']}")
+                with col_b:
+                    st.write(f"**User:** {event['user_id']}")
+                    doc_id = event["document_id"]
+                    st.write(
+                        f"**Document ID:** {doc_id[:16]}..."
+                        if doc_id != "-" else "**Document ID:** -"
+                    )
+                if event["details"]:
+                    st.write("**Detail:**")
+                    for k, v in event["details"].items():
+                        st.write(f"- {k}: `{v}`")
+
+        st.markdown("---")
+
+        # ── Download laporan ──────────────────────────────────
+        st.subheader("Download Laporan")
+
+        dl_a, dl_b, dl_c = st.columns(3)
+        with dl_a:
+            st.download_button(
+                label="⬇️ Download JSON",
+                data=audit.generate_audit_report(format="json").encode("utf-8"),
+                file_name="audit_trail.json",
+                mime="application/json",
+                key="download_audit_json",
+            )
+        with dl_b:
+            st.download_button(
+                label="⬇️ Download TXT",
+                data=audit.generate_audit_report(format="txt").encode("utf-8"),
+                file_name="audit_trail.txt",
+                mime="text/plain",
+                key="download_audit_txt",
+            )
+        with dl_c:
+            if st.button("🗑️ Hapus Semua Event", key="clear_audit"):
+                audit.clear()
+                st.success("Audit trail dihapus.")
+                st.rerun()
+
 
 with tab_info:
     st.subheader("📖 Tentang eSignGuard")
