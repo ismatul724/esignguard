@@ -1311,7 +1311,7 @@ with tab_info:
             "initials": "RA",
             "image": "assets/refa.jpeg",
             "links": [
-                ("Instagram", "https://instagram.com/refaadinda"),
+                ("Instagram", "https://www.instagram.com/refaadiindaa"),
                 ("GitHub", "https://github.com/247006111197-web"),
             ],
         },
