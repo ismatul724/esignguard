@@ -14,12 +14,13 @@ Aplikasi ini sudah di-deploy dan bisa diakses di:
 
 ## Fitur
 
-- Generate pasangan key Ed25519
+- Generate pasangan key Ed25519 (single atau multi-signature)
 - Private key disimpan dalam format PEM terenkripsi password
 - Tanda tangan dokumen menggunakan hash SHA-256
+- Dukungan multi-signature (lebih dari satu penandatangan)
 - Pembuatan signature dalam format JSON
-- Pembuatan QR Code metadata verifikasi
-- Verifikasi dokumen asli
+- QR Code verifikasi yang menyegel seluruh penandatangan
+- Verifikasi dokumen asli (single maupun multi-signature)
 - Deteksi perubahan/tampering dokumen
 - Deteksi public key yang salah
 
@@ -87,107 +88,165 @@ http://localhost:8501
 
 ## Alur Penggunaan Lengkap
 
-### 1. Membuat Pasangan Key
+---
 
-1. Buka tab **Generate Key**.
-2. Masukkan password minimal 8 karakter.
+### A. Tanda Tangan Tunggal (Single Signature)
+
+Digunakan ketika dokumen hanya ditandatangani oleh satu orang.
+
+#### 1. Generate Key
+
+1. Buka tab **🔑 Generate Key**.
+2. Masukkan password minimal 8 karakter (harus mengandung huruf dan angka).
 3. Masukkan password yang sama pada kolom konfirmasi.
-4. Klik **Generate Key Pair**.
-5. Download dua file yang dihasilkan:
+4. Pastikan checkbox **"Aktifkan multi-signature"** tidak dicentang.
+5. Klik **Generate Key Pair**.
+6. Download dua file yang dihasilkan:
    - `private_key_encrypted.pem`
    - `public_key.pem`
 
-Private key digunakan untuk membuat tanda tangan. Public key digunakan untuk memeriksa tanda tangan. Simpan private key dan password secara aman. **Jangan mengunggah private key atau password ke GitHub.**
+Simpan private key dan password dengan aman. **Jangan mengunggah private key ke GitHub.**
 
+#### 2. Menandatangani Dokumen
 
-### 2. Menandatangani Dokumen
-
-1. Buka tab **Sign Document**.
+1. Buka tab **✍️ Sign Document**.
 2. Upload dokumen yang akan ditandatangani.
-3. Upload `private_key_encrypted.pem` dari pasangan key yang dibuat.
+3. Upload `private_key_encrypted.pem`.
 4. Masukkan password private key.
-5. Isi nama penandatangan.
-6. Isi jabatan atau peran penandatangan.
-7. Isi institusi.
-8. Klik **Tandatangani Dokumen**.
+5. Isi nama, jabatan, dan institusi penandatangan.
+6. Klik **Tandatangani Dokumen**.
+7. Download dua file hasil:
+   - `nama_dokumen.signature.json` — berisi hash, signature, dan metadata
+   - `nama_dokumen.qrcode.png` — QR Code verifikasi
 
-Setelah proses berhasil, aplikasi menghitung hash SHA-256 dokumen dan membuat signature Ed25519. Aplikasi menampilkan hash dokumen serta menghasilkan dua file tambahan:
+Simpan dokumen asli, signature JSON, QR Code, dan `public_key.pem` sebagai satu paket.
 
-- `nama_dokumen.signature.json`, berisi hash, signature, algoritma, dan metadata.
-- `nama_dokumen.qrcode.png`, berisi hash dan metadata verifikasi.
+#### 3. Verifikasi Dokumen
 
-Simpan dokumen asli, signature JSON, QR Code, dan `public_key.pem` sebagai satu paket. Keempat file tersebut harus berasal dari proses signing yang sama.
-
-
-### 3. Memverifikasi Dokumen Asli
-
-1. Buka tab **Verify Document**.
-2. Upload dokumen asli yang belum diubah.
-3. Upload file signature JSON yang sesuai.
-4. Upload `public_key.pem` pasangannya.
-5. Upload QR Code yang sesuai jika ingin memeriksa QR.
+1. Buka tab **✅ Verify Document**.
+2. Upload dokumen asli.
+3. Upload file `signature.json`.
+4. Upload `public_key.pem`.
+5. Upload QR Code (opsional).
 6. Klik **Verifikasi Dokumen**.
 
-Jika semua file cocok, hasilnya adalah:
+Hasil yang diharapkan:
 
-```text
-VALID - Dokumen autentik dan tidak berubah.
-QR VALID - QR Code cocok dengan dokumen dan signature JSON.
+```
+VALID — Dokumen autentik dan tidak berubah.
+QR VALID — Hash QR Code cocok dengan dokumen yang diunggah.
 ```
 
+---
 
-### 4. Menguji Dokumen yang Diubah (Tampering)
+### B. Multi-Signature (Dua Penandatangan)
 
-Untuk demonstrasi tampering:
+Digunakan ketika dokumen harus ditandatangani oleh dua orang.
 
-1. Buat salinan dokumen asli.
-2. Ubah satu kata atau satu byte pada salinan tersebut.
-3. Upload salinan yang sudah diubah pada tab **Verify Document**.
-4. Gunakan signature JSON dan public key dari dokumen asli.
-5. Klik **Verifikasi Dokumen**.
+#### 1. Generate 2 Key Pair
 
-Hasil yang diharapkan adalah `INVALID` karena hash dokumen baru berbeda dari hash yang tersimpan di signature JSON.
+1. Buka tab **🔑 Generate Key**.
+2. Masukkan password untuk **Penandatangan 1** dan konfirmasinya.
+3. Centang checkbox **"Aktifkan multi-signature (generate key untuk 2 penandatangan)"**.
+4. Muncul form password untuk **Penandatangan 2** — isi dan konfirmasi.
+5. Klik **Generate 2 Key Pair**.
+6. Download empat file yang dihasilkan:
+   - `private_key_1_encrypted.pem` dan `public_key_1.pem` — untuk Penandatangan 1
+   - `private_key_2_encrypted.pem` dan `public_key_2.pem` — untuk Penandatangan 2
 
-**Jangan menyimpan perubahan ke file asli yang ingin dipakai sebagai pembanding.**
+#### 2. Penandatangan Pertama Menandatangani
 
+1. Buka tab **✍️ Sign Document**.
+2. Muncul info biru: *"Mode multi-signature aktif"*.
+3. Upload dokumen yang akan ditandatangani.
+4. Upload `private_key_1_encrypted.pem`.
+5. Masukkan password Penandatangan 1.
+6. Isi nama, jabatan, dan institusi Penandatangan 1.
+7. Klik **Tandatangani Dokumen**.
+8. Download `nama_dokumen.signature.json` (belum ada QR Code pada tahap ini).
 
-### 5. Menguji Public Key yang Salah
+#### 3. Penandatangan Kedua Menambahkan Tanda Tangan
 
-1. Generate pasangan key baru pada tab **Generate Key**.
-2. Jangan gunakan private key baru untuk menandatangani ulang dokumen lama.
-3. Pada tab **Verify Document**, upload dokumen lama dan signature JSON lama.
-4. Gunakan `public_key.pem` dari pasangan key baru.
-5. Klik **Verifikasi Dokumen**.
+1. Buka tab **➕ Tambah Tanda Tangan**.
+2. Upload dokumen yang **sama persis** dengan dokumen di langkah sebelumnya.
+3. Upload `nama_dokumen.signature.json` dari langkah sebelumnya.
+4. Upload `private_key_2_encrypted.pem`.
+5. Masukkan password Penandatangan 2.
+6. Isi nama, jabatan, dan institusi Penandatangan 2.
+7. Klik **Tambahkan Tanda Tangan**.
+8. Download dua file hasil:
+   - `nama_dokumen.multisignature.json` — berisi tanda tangan kedua penandatangan
+   - `nama_dokumen.multisignature.qrcode.png` — QR Code yang menyegel keduanya
 
-Hasil yang diharapkan adalah `INVALID` karena signature dibuat menggunakan private key yang berbeda dari public key yang digunakan untuk verifikasi.
+> QR Code hanya tergenerate setelah penandatangan kedua selesai karena QR menyegel seluruh tanda tangan.
 
+#### 4. Verifikasi Multi-Signature
 
-### 6. Menguji QR Code Palsu
+1. Buka tab **✅ Verify Document**.
+2. Upload dokumen asli.
+3. Upload `nama_dokumen.multisignature.json` — aplikasi otomatis mendeteksi multi-signature dan meminta 2 public key.
+4. Upload `public_key_1.pem` untuk Penandatangan 1.
+5. Upload `public_key_2.pem` untuk Penandatangan 2.
+6. Upload QR Code (opsional).
+7. Klik **Verifikasi Dokumen**.
 
-1. Gunakan dokumen, signature JSON, dan public key yang benar.
-2. Upload QR Code yang berasal dari dokumen lain atau QR yang datanya telah diubah.
+Hasil yang diharapkan:
+
+```
+VALID — Dokumen autentik dan seluruh tanda tangan valid.
+1. Penandatangan 1 — VALID
+2. Penandatangan 2 — VALID
+```
+
+---
+
+### C. Menguji Skenario Kegagalan
+
+#### Dokumen yang Diubah (Tampering)
+
+1. Ubah satu karakter pada dokumen asli.
+2. Upload dokumen yang sudah diubah di tab **Verify Document**.
+3. Gunakan signature JSON dan public key dari dokumen asli.
+4. Klik **Verifikasi Dokumen**.
+
+Hasil yang diharapkan: `INVALID — Hash dokumen berbeda.`
+
+#### Public Key yang Salah
+
+1. Generate pasangan key baru.
+2. Gunakan public key baru untuk memverifikasi dokumen yang ditandatangani dengan key lama.
 3. Klik **Verifikasi Dokumen**.
 
-Hasil yang diharapkan adalah `QR INVALID` karena hash atau metadata pada QR tidak cocok dengan dokumen dan signature JSON yang sedang diverifikasi.
+Hasil yang diharapkan: `INVALID — Signature tidak cocok dengan public key.`
 
+#### QR Code Palsu atau dari Dokumen Lain
 
-### 7. Memahami Hasil Verifikasi
+1. Upload dokumen dan signature JSON yang benar.
+2. Upload QR Code dari dokumen berbeda.
+3. Klik **Verifikasi Dokumen**.
 
-Verifikasi dokumen dan verifikasi QR ditampilkan sebagai hasil terpisah:
+Hasil yang diharapkan: `QR TIDAK COCOK — Hash di QR Code tidak cocok dengan dokumen.`
 
-- **VALID**: hash dokumen cocok dan signature Ed25519 dapat diverifikasi dengan public key yang diberikan.
-- **INVALID**: dokumen berubah, signature rusak, atau public key tidak cocok.
-- **QR VALID**: isi QR cocok dengan dokumen dan signature JSON.
-- **QR INVALID**: QR tidak terbaca, berasal dari aplikasi lain, atau isinya tidak cocok dengan dokumen/signature JSON.
+---
 
-Jika hasilnya tidak sesuai, pastikan semua file diambil dari satu proses signing. Membuka lalu menyimpan ulang PDF juga dapat mengubah byte file dan membuat hash berbeda.
+### D. Memahami Hasil Verifikasi
+
+| Hasil | Artinya |
+|---|---|
+| **VALID** | Hash dokumen cocok dan signature berhasil diverifikasi dengan public key |
+| **INVALID** | Dokumen berubah, signature rusak, atau public key tidak cocok |
+| **QR VALID** | Hash di QR Code cocok dengan dokumen yang diunggah |
+| **QR TIDAK COCOK** | Hash di QR berbeda dari dokumen yang diunggah |
+| **QR TIDAK TERBACA** | File QR tidak dapat dibaca atau bukan dari eSignGuard |
+
+> Jika hasil tidak sesuai, pastikan semua file berasal dari satu proses signing yang sama. Membuka dan menyimpan ulang PDF dapat mengubah byte file dan membuat hash berbeda.
 
 
 ## Keamanan
 
 - ⚠️ **Jangan unggah private key, password, atau file `.pem` ke GitHub.**
 - ⚠️ **Jangan unggah dokumen sensitif ke repository.**
-- Private key dibuat dalam format terenkripsi menggunakan password.
+- Private key dibuat dalam format terenkripsi menggunakan password (AES-256).
 
 
 ## Benchmark & Testing
