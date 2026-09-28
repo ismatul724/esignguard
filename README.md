@@ -268,14 +268,14 @@ python -m pytest tests/
 | Nama | NIM | Role |
 |------|-----|------|
 | Ismatul Ilmi | 247006111137 | Backend Developer |
-| Nabila Rohmatul Aulia | 247006111143 | UI/UX Designer |
+| Nabila Rohmatul Aulia | 247006111143 | Developer |
 | Refa Adinda | 247006111197 | QA & Documentation |
 
 ### 🌐 Kontak
 
 - **Ismatul Ilmi**: [Instagram](https://instagram.com/Ilmysma) · [GitHub](https://github.com/Ismatul724)
 - **Nabila Rohmatul Aulia**: [Instagram](https://instagram.com/nabilaara_) · [GitHub](https://github.com/NABILAARA)
-- **Refa Adinda**: [Instagram](https://instagram.com/refaadinda) · [GitHub](https://github.com/247006111197-web)
+- **Refa Adinda**: [Instagram](https://www.instagram.com/refaadiindaa) · [GitHub](https://github.com/247006111197-web)
 
 
 ## Lisensi
