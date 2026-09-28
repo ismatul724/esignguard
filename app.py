@@ -2,10 +2,13 @@ import json
 import streamlit as st
 
 from crypto_utils import (
+    add_document_signature,
+    create_multisignature_data,
     create_signature_data,
     generate_key_pair,
     signature_json_bytes,
     verify_document_signature,
+    verify_multisignature_document,
     validate_password,
     sanitize_input,
 )
@@ -426,10 +429,17 @@ if "signed_json_bytes" not in st.session_state:
 if "signed_qr_bytes" not in st.session_state:
     st.session_state.signed_qr_bytes = None
 
+if "multisignature_json_bytes" not in st.session_state:
+    st.session_state.multisignature_json_bytes = None
 
-tab_key, tab_sign, tab_verify, tab_info = st.tabs([
+if "multisignature_document_name" not in st.session_state:
+    st.session_state.multisignature_document_name = None
+
+
+tab_key, tab_sign, tab_add_signature, tab_verify, tab_info = st.tabs([
     "🔑 Generate Key",
     "✍️ Sign Document",
+    "➕ Tambah Tanda Tangan",
     "✅ Verify Document",
     "ℹ️ Tentang"
 ])
@@ -533,38 +543,47 @@ with tab_sign:
     document_file = st.file_uploader(
         "Pilih dokumen (PDF atau file lain)",
         type=None,
-        key="sign_document"
+        key="sign_document",
     )
 
     private_key_file = st.file_uploader(
         "Pilih private key terenkripsi (.pem)",
         type=["pem"],
-        key="sign_private_key"
+        key="sign_private_key",
     )
 
     key_password = st.text_input(
         "Password private key",
         type="password",
-        key="sign_password"
+        key="sign_password",
     )
 
     signer_name = st.text_input(
         "Nama penandatangan",
         key="signer_name",
-        help="Maksimal 100 karakter"
+        help="Maksimal 100 karakter",
     )
 
     signer_role = st.text_input(
         "Jabatan / peran penandatangan",
         key="signer_role",
-        help="Maksimal 100 karakter"
+        help="Maksimal 100 karakter",
     )
 
     institution = st.text_input(
         "Institusi",
         value="Universitas Siliwangi",
         key="sign_institution",
-        help="Maksimal 150 karakter"
+        help="Maksimal 150 karakter",
+    )
+
+    enable_multisignature = st.checkbox(
+        "Aktifkan multi-signature untuk dokumen ini",
+        value=False,
+        help=(
+            "Centang jika dokumen akan ditandatangani oleh lebih dari "
+            "satu orang."
+        ),
     )
 
     if st.button("Tandatangani Dokumen", type="primary"):
@@ -581,20 +600,41 @@ with tab_sign:
                 document_bytes = document_file.getvalue()
                 private_key_bytes = private_key_file.getvalue()
 
-                # Sanitasi input
-                signer_name_clean = sanitize_input(signer_name, max_length=100)
-                signer_role_clean = sanitize_input(signer_role, max_length=100)
-                institution_clean = sanitize_input(institution, max_length=150)
-
-                signature_data, document_hash = create_signature_data(
-                    document_bytes=document_bytes,
-                    document_name=document_file.name,
-                    private_key_pem=private_key_bytes,
-                    password=key_password,
-                    signer_name=signer_name_clean,
-                    signer_role=signer_role_clean,
-                    institution=institution_clean,
+                signer_name_clean = sanitize_input(
+                    signer_name,
+                    max_length=100,
                 )
+                signer_role_clean = sanitize_input(
+                    signer_role,
+                    max_length=100,
+                )
+                institution_clean = sanitize_input(
+                    institution,
+                    max_length=150,
+                )
+
+                if enable_multisignature:
+                    signature_data, document_hash = (
+                        create_multisignature_data(
+                            document_bytes=document_bytes,
+                            document_name=document_file.name,
+                            private_key_pem=private_key_bytes,
+                            password=key_password,
+                            signer_name=signer_name_clean,
+                            signer_role=signer_role_clean,
+                            institution=institution_clean,
+                        )
+                    )
+                else:
+                    signature_data, document_hash = create_signature_data(
+                        document_bytes=document_bytes,
+                        document_name=document_file.name,
+                        private_key_pem=private_key_bytes,
+                        password=key_password,
+                        signer_name=signer_name_clean,
+                        signer_role=signer_role_clean,
+                        institution=institution_clean,
+                    )
 
                 st.session_state.signed_document_name = document_file.name
                 st.session_state.signed_document_hash = document_hash
@@ -630,20 +670,42 @@ with tab_sign:
 
         metric_1, metric_2 = st.columns(2)
 
-        with metric_1:
-            st.metric(
-                "Algoritma",
-                signature_data["algorithm"]
-            )
+        if signature_data.get("signature_type") == "multi-signature":
+            first_signature = signature_data["signatures"][0]
 
-        with metric_2:
-            st.metric(
-                "Ukuran signature",
-                f"{signature_data['signature_size_bytes']} byte"
-            )
+            with metric_1:
+                st.metric(
+                    "Algoritma",
+                    first_signature["algorithm"],
+                )
+
+            with metric_2:
+                st.metric(
+                    "Jumlah penandatangan",
+                    len(signature_data["signatures"]),
+                )
+        else:
+            with metric_1:
+                st.metric(
+                    "Algoritma",
+                    signature_data["algorithm"],
+                )
+
+            with metric_2:
+                st.metric(
+                    "Ukuran signature",
+                    f"{signature_data['signature_size_bytes']} byte",
+                )
 
         st.subheader("QR Code Verifikasi")
-        st.image(qr_bytes, width=420)
+
+        if qr_bytes is not None:
+            st.image(qr_bytes, width=420)
+        else:
+            st.warning(
+                "QR Code belum tersedia. Silakan lakukan proses signing "
+                "ulang setelah memperbaiki generator QR Code."
+            )
 
         download_1, download_2 = st.columns(2)
 
@@ -653,21 +715,139 @@ with tab_sign:
                 data=json_bytes,
                 file_name=f"{document_name}.signature.json",
                 mime="application/json",
-                key="download_signature_json"
+                key="download_signature_json",
             )
 
         with download_2:
-            st.download_button(
-                label="⬇️ Download QR Code",
-                data=qr_bytes,
-                file_name=f"{document_name}.qrcode.png",
-                mime="image/png",
-                key="download_qr_code"
-            )
+            if qr_bytes is not None:
+                st.download_button(
+                    label="⬇️ Download QR Code",
+                    data=qr_bytes,
+                    file_name=f"{document_name}.qrcode.png",
+                    mime="image/png",
+                    key="download_qr_code",
+                )
+            else:
+                st.caption("QR Code belum tersedia.")
 
         st.info(
             "Simpan dokumen asli, signature JSON, public key, dan QR Code. "
             "Keempatnya digunakan untuk verifikasi."
+        )
+
+with tab_add_signature:
+    st.subheader("➕ Tambah Tanda Tangan")
+
+    st.write(
+        "Gunakan fitur ini untuk menambahkan tanda tangan penandatangan "
+        "kedua atau berikutnya pada dokumen yang sama."
+    )
+
+    st.info(
+        "Dokumen yang diunggah harus sama persis dengan dokumen saat "
+        "signature JSON sebelumnya dibuat. Jika dokumen berubah satu byte "
+        "saja, tanda tangan tambahan tidak dapat dibuat."
+    )
+
+    multi_document_file = st.file_uploader(
+        "Pilih dokumen asli",
+        type=None,
+        key="multi_document",
+    )
+
+    multi_signature_file = st.file_uploader(
+        "Pilih signature JSON multi-signature sebelumnya",
+        type=["json"],
+        key="multi_signature_json",
+    )
+
+    multi_private_key_file = st.file_uploader(
+        "Pilih private key penandatangan berikutnya (.pem)",
+        type=["pem"],
+        key="multi_private_key",
+    )
+
+    multi_password = st.text_input(
+        "Password private key penandatangan berikutnya",
+        type="password",
+        key="multi_password",
+    )
+
+    multi_signer_name = st.text_input(
+        "Nama penandatangan berikutnya",
+        key="multi_signer_name",
+    )
+
+    multi_signer_role = st.text_input(
+        "Jabatan / peran penandatangan berikutnya",
+        key="multi_signer_role",
+    )
+
+    multi_institution = st.text_input(
+        "Institusi penandatangan berikutnya",
+        value="Universitas Siliwangi",
+        key="multi_institution",
+    )
+
+    if st.button("Tambahkan Tanda Tangan", type="primary"):
+        if multi_document_file is None:
+            st.warning("Pilih dokumen asli terlebih dahulu.")
+        elif multi_signature_file is None:
+            st.warning("Pilih signature JSON multi-signature.")
+        elif multi_private_key_file is None:
+            st.warning("Pilih private key penandatangan berikutnya.")
+        elif not multi_password:
+            st.warning("Masukkan password private key.")
+        elif not multi_signer_name:
+            st.warning("Nama penandatangan wajib diisi.")
+        else:
+            try:
+                updated_signature_data = add_document_signature(
+                    document_bytes=multi_document_file.getvalue(),
+                    signature_json_bytes=multi_signature_file.getvalue(),
+                    private_key_pem=multi_private_key_file.getvalue(),
+                    password=multi_password,
+                    signer_name=multi_signer_name,
+                    signer_role=multi_signer_role,
+                    institution=multi_institution,
+                )
+
+                st.session_state.multisignature_json_bytes = (
+                    signature_json_bytes(updated_signature_data)
+                )
+                st.session_state.multisignature_document_name = (
+                    multi_document_file.name
+                )
+
+                signer_count = len(updated_signature_data["signatures"])
+
+                st.success(
+                    f"Tanda tangan berhasil ditambahkan. "
+                    f"Total penandatangan: {signer_count}."
+                )
+
+            except ValueError as error:
+                st.error(str(error))
+            except Exception as error:
+                st.error(
+                    f"Terjadi kesalahan saat menambahkan tanda tangan: "
+                    f"{error}"
+                )
+
+    if st.session_state.multisignature_json_bytes is not None:
+        st.success(
+            "Signature JSON multi-signature yang diperbarui siap diunduh."
+        )
+
+        st.download_button(
+            label="⬇️ Download Multi-Signature JSON",
+            data=st.session_state.multisignature_json_bytes,
+            file_name=(
+                f"{st.session_state.multisignature_document_name}"
+                ".multisignature.json"
+            ),
+            mime="application/json",
+            key="download_multisignature_json",
         )
 
 
@@ -675,32 +855,77 @@ with tab_verify:
     st.subheader("Verifikasi Dokumen")
 
     st.write(
-        "Unggah dokumen asli, signature JSON, public key, dan QR Code "
-        "untuk memeriksa keaslian serta integritas dokumen."
+        "Unggah dokumen, signature JSON, dan public key untuk memeriksa "
+        "keaslian, integritas, serta validitas tanda tangan digital."
     )
 
     verify_document_file = st.file_uploader(
         "Pilih dokumen yang akan diverifikasi",
         type=None,
-        key="verify_document"
+        key="verify_document",
     )
 
     signature_file = st.file_uploader(
         "Pilih file signature (.json)",
         type=["json"],
-        key="verify_signature"
+        key="verify_signature",
     )
 
-    public_key_file = st.file_uploader(
-        "Pilih public key (.pem)",
-        type=["pem"],
-        key="verify_public_key"
+    if signature_file is not None:
+        try:
+            preview_signature_data = json.loads(
+                signature_file.getvalue().decode("utf-8")
+            )
+        except Exception:
+            preview_signature_data = None
+    else:
+        preview_signature_data = None
+
+    is_multisignature = (
+        preview_signature_data is not None
+        and preview_signature_data.get("signature_type")
+        == "multi-signature"
     )
+
+    if is_multisignature:
+        signatures = preview_signature_data.get("signatures", [])
+        signer_count = len(signatures)
+
+        st.info(
+            f"Signature JSON multi-signature terdeteksi. "
+            f"Jumlah penandatangan: {signer_count}."
+        )
+
+        public_key_files = []
+
+        for index, signature_entry in enumerate(signatures, start=1):
+            metadata = signature_entry.get("metadata", {})
+            signer_name = metadata.get(
+                "signer_name",
+                f"Penandatangan {index}",
+            )
+
+            public_key_file = st.file_uploader(
+                f"Public key untuk penandatangan {index}: {signer_name}",
+                type=["pem"],
+                key=f"verify_multi_public_key_{index}",
+            )
+
+            public_key_files.append(public_key_file)
+
+    else:
+        public_key_file = st.file_uploader(
+            "Pilih public key (.pem)",
+            type=["pem"],
+            key="verify_public_key",
+        )
+        public_key_files = [public_key_file]
 
     qr_file = st.file_uploader(
-        "Upload file QR Code hasil download (PNG/JPG, jangan screenshot atau crop)",
+        "Upload file QR Code hasil download (PNG/JPG, jangan screenshot "
+        "atau crop)",
         type=["png", "jpg", "jpeg"],
-        key="verify_qr_code"
+        key="verify_qr_code",
     )
 
     if st.button("Verifikasi Dokumen", type="primary"):
@@ -708,46 +933,87 @@ with tab_verify:
             st.warning("Pilih dokumen yang akan diverifikasi.")
         elif signature_file is None:
             st.warning("Pilih file signature JSON.")
-        elif public_key_file is None:
-            st.warning("Pilih public key.")
+        elif preview_signature_data is None:
+            st.warning("File signature JSON tidak valid.")
+        elif any(key_file is None for key_file in public_key_files):
+            st.warning(
+                "Upload semua public key sesuai dengan jumlah "
+                "penandatangan."
+            )
         else:
             try:
                 document_bytes = verify_document_file.getvalue()
                 signature_bytes = signature_file.getvalue()
-                public_key_bytes = public_key_file.getvalue()
 
-                result = verify_document_signature(
-                    document_bytes=document_bytes,
-                    signature_json_bytes=signature_bytes,
-                    public_key_pem=public_key_bytes,
-                )
+                if is_multisignature:
+                    public_key_bytes_list = [
+                        key_file.getvalue()
+                        for key_file in public_key_files
+                    ]
 
-                if result["valid"]:
-                    st.success("VALID — Dokumen autentik dan tidak berubah.")
+                    result = verify_multisignature_document(
+                        document_bytes=document_bytes,
+                        signature_json_bytes=signature_bytes,
+                        public_key_pems=public_key_bytes_list,
+                    )
+
+                    if result["valid"]:
+                        st.success(
+                            "VALID — Dokumen autentik dan seluruh "
+                            "tanda tangan valid."
+                        )
+                    else:
+                        st.error(f"INVALID — {result['reason']}")
+
+                    st.subheader("Hasil Verifikasi Penandatangan")
+
+                    for signer_result in result["signer_results"]:
+                        signer_label = (
+                            f"{signer_result['index']}. "
+                            f"{signer_result['signer_name']}"
+                        )
+
+                        if signer_result["valid"]:
+                            st.success(
+                                f"{signer_label} — VALID. "
+                                f"{signer_result['reason']}"
+                            )
+                        else:
+                            st.error(
+                                f"{signer_label} — INVALID. "
+                                f"{signer_result['reason']}"
+                            )
+
                 else:
-                    st.error(f"INVALID — {result['reason']}")
+                    result = verify_document_signature(
+                        document_bytes=document_bytes,
+                        signature_json_bytes=signature_bytes,
+                        public_key_pem=public_key_files[0].getvalue(),
+                    )
+
+                    if result["valid"]:
+                        st.success(
+                            "VALID — Dokumen autentik dan tidak berubah."
+                        )
+                    else:
+                        st.error(f"INVALID — {result['reason']}")
 
                 if qr_file is not None:
                     try:
-                        signature_data = json.loads(
-                            signature_bytes.decode("utf-8")
-                        )
-
                         qr_data = decode_qr_code(qr_file.getvalue())
 
-                        qr_result = validate_qr_data(
-                            qr_data=qr_data,
-                            current_hash=result["current_hash"],
-                            signature_data=signature_data,
-                        )
-
-                        if qr_result["valid"]:
-                            st.success(
-                                f"QR VALID — {qr_result['reason']}"
+                        if (
+                            qr_data.get("document_sha256")
+                            != result["current_hash"]
+                        ):
+                            st.warning(
+                                "QR TIDAK COCOK — Hash di QR Code tidak "
+                                "cocok dengan dokumen yang diunggah."
                             )
                         else:
-                            st.warning(
-                                f"QR TIDAK COCOK — {qr_result['reason']}"
+                            st.success(
+                                "QR VALID — Hash QR Code cocok dengan "
+                                "dokumen yang diunggah."
                             )
 
                     except ValueError as error:
@@ -765,30 +1031,40 @@ with tab_verify:
                     st.caption("Hash saat dokumen ditandatangani")
                     st.code(result["signed_hash"], language=None)
 
-                metadata = result["metadata"]
+                if is_multisignature:
+                    st.write(
+                        f"**Jumlah penandatangan:** "
+                        f"{result['total_signers']}"
+                    )
+                    st.write(
+                        f"**Tanda tangan valid:** "
+                        f"{result['valid_signatures']} dari "
+                        f"{result['total_signers']}"
+                    )
+                else:
+                    metadata = result["metadata"]
 
-                st.write(
-                    f"**Nama penandatangan:** "
-                    f"{metadata.get('signer_name', '-')}"
-                )
-                st.write(
-                    f"**Jabatan/peran:** "
-                    f"{metadata.get('signer_role', '-')}"
-                )
-                st.write(
-                    f"**Institusi:** "
-                    f"{metadata.get('institution', '-')}"
-                )
-                st.write(
-                    f"**Waktu tanda tangan (UTC):** "
-                    f"{metadata.get('signed_at_utc', '-')}"
-                )
+                    st.write(
+                        f"**Nama penandatangan:** "
+                        f"{metadata.get('signer_name', '-')}"
+                    )
+                    st.write(
+                        f"**Jabatan/peran:** "
+                        f"{metadata.get('signer_role', '-')}"
+                    )
+                    st.write(
+                        f"**Institusi:** "
+                        f"{metadata.get('institution', '-')}"
+                    )
+                    st.write(
+                        f"**Waktu tanda tangan (UTC):** "
+                        f"{metadata.get('signed_at_utc', '-')}"
+                    )
 
             except ValueError as error:
                 st.error(str(error))
             except Exception as error:
                 st.error(f"Terjadi kesalahan saat verifikasi: {error}")
-
 
 with tab_info:
     st.subheader("📖 Tentang eSignGuard")

@@ -317,3 +317,318 @@ def verify_document_signature(
         "signed_hash": signed_hash,
         "metadata": signature_data["metadata"],
     }
+
+def _create_signer_entry(
+    document_hash: str,
+    private_key_pem: bytes,
+    password: str,
+    signer_name: str,
+    signer_role: str,
+    institution: str,
+) -> dict:
+    """
+    Membuat satu entri signature Ed25519 untuk dokumen yang hash-nya
+    sudah diketahui.
+    """
+    if not signer_name.strip():
+        raise ValueError("Nama penandatangan wajib diisi.")
+
+    if not institution.strip():
+        raise ValueError("Institusi wajib diisi.")
+
+    signer_name = sanitize_input(signer_name, max_length=100)
+    signer_role = sanitize_input(signer_role, max_length=100)
+    institution = sanitize_input(institution, max_length=150)
+
+    private_key = load_private_key(private_key_pem, password)
+    signature_bytes = private_key.sign(document_hash.encode("utf-8"))
+
+    return {
+        "algorithm": "Ed25519",
+        "signature_base64": base64.b64encode(signature_bytes).decode("utf-8"),
+        "signature_size_bytes": len(signature_bytes),
+        "metadata": {
+            "signer_name": signer_name,
+            "signer_role": signer_role,
+            "institution": institution,
+            "signed_at_utc": datetime.now(timezone.utc).isoformat(),
+        },
+    }
+
+
+def create_multisignature_data(
+    document_bytes: bytes,
+    document_name: str,
+    private_key_pem: bytes,
+    password: str,
+    signer_name: str,
+    signer_role: str,
+    institution: str,
+) -> tuple[dict, str]:
+    """
+    Membuat signature JSON versi multi-signature dengan signature pertama.
+    """
+    document_hash = calculate_sha256(document_bytes)
+
+    first_signature = _create_signer_entry(
+        document_hash=document_hash,
+        private_key_pem=private_key_pem,
+        password=password,
+        signer_name=signer_name,
+        signer_role=signer_role,
+        institution=institution,
+    )
+
+    multisignature_data = {
+        "app_name": "eSignGuard",
+        "signature_version": "1.2",
+        "signature_type": "multi-signature",
+        "hash_algorithm": "SHA-256",
+        "signed_message_format": "sha256-hex-utf8",
+        "document_name": document_name,
+        "document_sha256": document_hash,
+        "signatures": [first_signature],
+    }
+
+    return multisignature_data, document_hash
+
+
+def add_document_signature(
+    document_bytes: bytes,
+    signature_json_bytes: bytes,
+    private_key_pem: bytes,
+    password: str,
+    signer_name: str,
+    signer_role: str,
+    institution: str,
+) -> dict:
+    """
+    Menambahkan tanda tangan baru ke multi-signature JSON yang sudah ada.
+
+    Dokumen yang diunggah harus sama persis dengan dokumen awal agar
+    hash SHA-256-nya sama.
+    """
+    try:
+        signature_data = json.loads(signature_json_bytes.decode("utf-8"))
+    except Exception as error:
+        raise ValueError(
+            "File signature JSON multi-signature tidak valid."
+        ) from error
+
+    required_fields = [
+        "app_name",
+        "signature_version",
+        "document_name",
+        "document_sha256",
+        "signatures",
+    ]
+
+    for field in required_fields:
+        if field not in signature_data:
+            raise ValueError(
+                f"Field '{field}' tidak ditemukan dalam signature JSON."
+            )
+
+    if signature_data.get("signature_type") != "multi-signature":
+        raise ValueError(
+            "File ini bukan signature JSON multi-signature versi 1.2."
+        )
+
+    if not isinstance(signature_data["signatures"], list):
+        raise ValueError("Field 'signatures' harus berupa daftar.")
+
+    current_hash = calculate_sha256(document_bytes)
+    signed_hash = signature_data["document_sha256"]
+
+    if current_hash != signed_hash:
+        raise ValueError(
+            "Hash dokumen berbeda. Gunakan dokumen asli yang sama persis "
+            "dengan dokumen pada signature JSON."
+        )
+
+    signer_name_clean = sanitize_input(signer_name, max_length=100)
+
+    for existing_signature in signature_data["signatures"]:
+        existing_metadata = existing_signature.get("metadata", {})
+        existing_name = existing_metadata.get("signer_name", "")
+
+        if existing_name.lower() == signer_name_clean.lower():
+            raise ValueError(
+                "Nama penandatangan ini sudah ada dalam signature JSON."
+            )
+
+    new_signature = _create_signer_entry(
+        document_hash=signed_hash,
+        private_key_pem=private_key_pem,
+        password=password,
+        signer_name=signer_name,
+        signer_role=signer_role,
+        institution=institution,
+    )
+
+    signature_data["signatures"].append(new_signature)
+    return signature_data
+
+
+def verify_multisignature_document(
+    document_bytes: bytes,
+    signature_json_bytes: bytes,
+    public_key_pems: list[bytes],
+) -> dict:
+    """
+    Memverifikasi semua signature pada satu dokumen.
+
+    Jumlah public key harus sama dengan jumlah signature dan urutannya
+    harus sesuai dengan urutan penandatangan di signature JSON.
+    Dokumen hanya valid bila seluruh signature valid.
+    """
+    try:
+        signature_data = json.loads(signature_json_bytes.decode("utf-8"))
+    except Exception as error:
+        raise ValueError(
+            "File signature JSON multi-signature tidak valid."
+        ) from error
+
+    required_fields = [
+        "app_name",
+        "signature_version",
+        "document_sha256",
+        "signatures",
+    ]
+
+    for field in required_fields:
+        if field not in signature_data:
+            raise ValueError(
+                f"Field '{field}' tidak ditemukan dalam signature JSON."
+            )
+
+    if signature_data.get("signature_type") != "multi-signature":
+        raise ValueError(
+            "File ini bukan signature JSON multi-signature versi 1.2."
+        )
+
+    signatures = signature_data["signatures"]
+
+    if not isinstance(signatures, list) or not signatures:
+        raise ValueError(
+            "Tidak ada signature yang ditemukan dalam signature JSON."
+        )
+
+    if len(public_key_pems) != len(signatures):
+        raise ValueError(
+            f"Jumlah public key harus {len(signatures)} sesuai jumlah "
+            "penandatangan pada signature JSON."
+        )
+
+    current_hash = calculate_sha256(document_bytes)
+    signed_hash = signature_data["document_sha256"]
+
+    if current_hash != signed_hash:
+        return {
+            "valid": False,
+            "reason": (
+                "Hash dokumen berbeda. Dokumen telah diubah atau bukan "
+                "dokumen yang ditandatangani."
+            ),
+            "current_hash": current_hash,
+            "signed_hash": signed_hash,
+            "total_signers": len(signatures),
+            "valid_signatures": 0,
+            "signer_results": [],
+        }
+
+    signer_results = []
+
+    for index, (signature_entry, public_key_pem) in enumerate(
+        zip(signatures, public_key_pems),
+        start=1,
+    ):
+        metadata = signature_entry.get("metadata", {})
+        signer_name = metadata.get("signer_name", f"Penandatangan {index}")
+
+        if signature_entry.get("algorithm") != "Ed25519":
+            signer_results.append({
+                "index": index,
+                "signer_name": signer_name,
+                "valid": False,
+                "reason": "Algoritma signature harus Ed25519.",
+            })
+            continue
+
+        try:
+            signature_bytes = base64.b64decode(
+                signature_entry["signature_base64"],
+                validate=True,
+            )
+            public_key = load_public_key(public_key_pem)
+            public_key.verify(
+                signature_bytes,
+                signed_hash.encode("utf-8"),
+            )
+
+            signer_results.append({
+                "index": index,
+                "signer_name": signer_name,
+                "signer_role": metadata.get("signer_role", "-"),
+                "institution": metadata.get("institution", "-"),
+                "signed_at_utc": metadata.get("signed_at_utc", "-"),
+                "valid": True,
+                "reason": "Signature valid.",
+            })
+
+        except KeyError:
+            signer_results.append({
+                "index": index,
+                "signer_name": signer_name,
+                "valid": False,
+                "reason": "Field signature_base64 tidak ditemukan.",
+            })
+
+        except InvalidSignature:
+            signer_results.append({
+                "index": index,
+                "signer_name": signer_name,
+                "valid": False,
+                "reason": (
+                    "Signature tidak cocok dengan public key untuk "
+                    "penandatangan ini."
+                ),
+            })
+
+        except ValueError as error:
+            signer_results.append({
+                "index": index,
+                "signer_name": signer_name,
+                "valid": False,
+                "reason": str(error),
+            })
+
+        except Exception as error:
+            signer_results.append({
+                "index": index,
+                "signer_name": signer_name,
+                "valid": False,
+                "reason": f"Gagal memverifikasi signature: {error}",
+            })
+
+    valid_signatures = sum(
+        1 for result in signer_results if result["valid"]
+    )
+    all_valid = valid_signatures == len(signatures)
+
+    return {
+        "valid": all_valid,
+        "reason": (
+            f"Semua {len(signatures)} tanda tangan valid."
+            if all_valid
+            else (
+                f"Hanya {valid_signatures} dari {len(signatures)} "
+                "tanda tangan yang valid."
+            )
+        ),
+        "current_hash": current_hash,
+        "signed_hash": signed_hash,
+        "total_signers": len(signatures),
+        "valid_signatures": valid_signatures,
+        "signer_results": signer_results,
+    }
