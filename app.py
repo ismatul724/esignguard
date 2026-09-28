@@ -1297,7 +1297,7 @@ with tab_info:
         },
         {
             "name": "Nabila Rohmatul Aulia",
-            "role": "UI/UX Designer",
+            "role": "Developer",
             "initials": "NR",
             "image": "assets/nabila.jpeg",
             "links": [
