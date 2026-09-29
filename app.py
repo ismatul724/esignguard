@@ -555,6 +555,15 @@ with tab_key:
                     st.session_state.generated_private_pem_2 = private_pem_2
                     st.session_state.generated_public_pem_2 = public_pem_2
                     st.session_state.is_multisignature_mode = True
+                    audit.add_audit_event(
+                        event_type="KEY_GENERATION_SUCCESS",
+                        details={
+                            "mode": "multi-signature",
+                            "algorithm": "Ed25519",
+                            "key_count": 2,
+                        },
+                        severity="INFO",
+                    )
                     st.success(
                         "2 key pair Ed25519 berhasil dibuat untuk multi-signature. "
                         "Silakan download keempat file di bawah ini."
@@ -563,12 +572,26 @@ with tab_key:
                     st.session_state.generated_private_pem_2 = None
                     st.session_state.generated_public_pem_2 = None
                     st.session_state.is_multisignature_mode = False
+                    audit.add_audit_event(
+                        event_type="KEY_GENERATION_SUCCESS",
+                        details={
+                            "mode": "single-signature",
+                            "algorithm": "Ed25519",
+                            "key_count": 1,
+                        },
+                        severity="INFO",
+                    )
                     st.success(
                         "Key pair Ed25519 berhasil dibuat. "
                         "Silakan download kedua file di bawah ini."
                     )
 
             except ValueError as error:
+                audit.add_audit_event(
+                    event_type="KEY_GENERATION_ERROR",
+                    details={"error": str(error)},
+                    severity="ERROR",
+                )
                 st.error(str(error))
 
     # ── Hasil download ───────────────────────────────────────
