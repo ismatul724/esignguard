@@ -67,6 +67,8 @@ data/*.png
 data/*.xlsx
 data/*.docx
 data/*.pptx
+# Hasil generate otomatis benchmark
+data/benchmark_results.json
 
 # ============================================
 # EDITOR/OS
