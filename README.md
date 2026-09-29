@@ -252,16 +252,17 @@ Tab **📊 Audit Trail** mencatat seluruh aktivitas penting selama sesi berlangs
 
 Aktivitas yang dicatat secara otomatis:
 
-| Event | Kapan dicatat |
-|---|---|
-| `DOCUMENT_SIGNED` | Penandatanganan dokumen berhasil |
-| `DOCUMENT_SIGN_ERROR` | Error saat proses signing |
-| `MULTI_SIGNATURE_ADDED` | Penambahan tanda tangan kedua berhasil |
-| `MULTI_SIGNATURE_ERROR` | Error saat menambahkan tanda tangan |
-| `DOCUMENT_VERIFIED` | Verifikasi dokumen selesai (VALID maupun INVALID dicatat sebagai WARNING) |
-| `DOCUMENT_VERIFY_ERROR` | Error saat proses verifikasi |
-| `KEY_GENERATION_SUCCESS` | Generate key pair berhasil *(hanya di `app_secure.py`)* |
-| `KEY_GENERATION_ERROR` | Error saat generate key *(hanya di `app_secure.py`)* |
+| Event | Severity | Kapan dicatat |
+|---|---|---|
+| `KEY_GENERATION_SUCCESS` | INFO | Generate key pair berhasil (single maupun multi-signature) |
+| `KEY_GENERATION_ERROR` | ERROR | Error saat generate key pair |
+| `DOCUMENT_SIGNED` | INFO | Penandatanganan dokumen berhasil |
+| `DOCUMENT_SIGN_ERROR` | ERROR | Error saat proses signing |
+| `MULTI_SIGNATURE_ADDED` | INFO | Penambahan tanda tangan kedua berhasil |
+| `MULTI_SIGNATURE_ERROR` | ERROR | Error saat menambahkan tanda tangan |
+| `DOCUMENT_VERIFIED` | INFO | Verifikasi dokumen selesai dan valid |
+| `DOCUMENT_VERIFIED` | WARNING | Verifikasi dokumen selesai namun tidak valid |
+| `DOCUMENT_VERIFY_ERROR` | ERROR | Error saat proses verifikasi |
 
 Setiap event mencatat: **timestamp (UTC)**, **jenis event**, **nama user**, **document ID** (SHA-256 dokumen), **severity** (INFO / WARNING / ERROR), dan **detail tambahan**.
 
